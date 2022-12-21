@@ -1,0 +1,25 @@
+{
+    "name": "michalosoft/project-classes",
+    "description": "Projektová sada tříd pro MiCHALosoft Admin",
+    "require": {
+        "php": ">=5"
+    },
+    "authors": [
+        {
+            "name": "Michal Diviš",
+            "email": "michalosoft@gmail.com",
+            "homepage": "https://github.com/inferius"
+        }
+    ],
+    "suggest": {
+		"latte/latte": "Pro použítí zobrazení šablon"
+	},
+    "autoload": {
+        "classmap": ["src/"]
+    },
+	"extra": {
+		"branch-alias": {
+			"dev-master": "1.0-dev"
+		}
+	}
+}

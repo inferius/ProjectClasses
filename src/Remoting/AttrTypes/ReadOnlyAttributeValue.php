@@ -2,26 +2,29 @@
 
 namespace API;
 
-require_once("IAttributeValue.php");
-
-
 class ReadOnlyAttributeValue implements IAttributeValue {
     protected $value;
     protected $name;
+    protected $type;
 
     public function __construct($value, $name) {
         $this->value = $value;
+        $this->name = $name;
+
+        if (is_int($value)) $this->type = "integer";
+        else if (is_string($value)) $this->type = "string";
+        else $this->type = "unknown";
     }
 
-    public function getName() {
+    public function getName(): string {
         return $this->name;
     }
 
-    public function getDataType() {
-        return null;
+    public function getDataType(): string {
+        return $this->type;
     }
 
-    public function getDataSubType() {
+    public function getDataSubType(): ?string {
         return null;
     }
 
@@ -29,23 +32,23 @@ class ReadOnlyAttributeValue implements IAttributeValue {
         return null;
     }
 
-    public function isEdited() {
+    public function isEdited(): bool {
         return false;
     }
 
-    public function isLocalizable() {
+    public function isLocalizable(): bool {
         return false;
     }
 
-    public function isRequired() {
+    public function isRequired(): bool {
         return false;
     }
 
-    public function isUnique() {
+    public function isUnique(): bool {
         return false;
     }
 
-    public function isEmpty() {
+    public function isEmpty(): bool {
         return $this->value == null;
     }
 
@@ -53,11 +56,11 @@ class ReadOnlyAttributeValue implements IAttributeValue {
         return $this->value;
     }
 
-    public function setValue($value) {
+    public function setValue($value): void {
         
     }
 
-    public function isValid() {
+    public function isValid(): bool {
         return true;
     }
 
@@ -68,5 +71,10 @@ class ReadOnlyAttributeValue implements IAttributeValue {
         return $this->value;
     }
 
-    public function afterSave() {}
+    public function afterSave(): void {}
+
+    public function delete(): void
+    {
+        // TODO: Implement delete() method.
+    }
 }

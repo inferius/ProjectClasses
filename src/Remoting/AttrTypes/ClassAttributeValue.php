@@ -12,7 +12,7 @@ class ClassAttributeValue extends AttributeValue {
         parent::__construct($value, $attr_info);
     }
 
-    public function getValue() {
+    public function getValue(): ?BaseObject {
         if (empty($this->obj_value)) {
             $this->obj_value = $this->value == 1 ? null : new BaseObject($this->subtype, $this->value);
             if (!empty($this->obj_value)) {
@@ -24,7 +24,7 @@ class ClassAttributeValue extends AttributeValue {
         return $this->obj_value;
     }
 
-    public function setValue($value) {
+    public function setValue($value): void {
         $set_value = null;
         if ($value == null) {
             $set_value = 1;

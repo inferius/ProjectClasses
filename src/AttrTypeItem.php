@@ -1,33 +1,14 @@
 <?php
 
 namespace API;
-
-require_once("methods.php");
-
-class AttrTypesManager {
-    function __construct(string $table_name = "model_attr_types") {
-        global $connection;
-        
-        $attrs_sql = $connection->query("SELECT * FROM ?name", $table_name );
-
-        foreach ($attrs_sql as $attr) {
-            $this->{$attr["text_id"]} = new AttrTypeItem($attr);
-        }
-    }
-
-    public function get($property_name): AttrTypeItem {
-        return $this->$property_name;
-    }
-}
-
 class AttrTypeItem {
 
-    /** @var \Nette\Database\IRow */
+    /** @var \Nette\Database\Row */
     private $attr_context;
     private $last_error;
     private $context = null;
 
-    function __construct(\Nette\Database\IRow $row_data, $context = null) {
+    function __construct(\Nette\Database\Row $row_data, $context = null) {
         $this->attr_context = $row_data;
         $this->context = $context;
     }
@@ -35,11 +16,11 @@ class AttrTypeItem {
     public function isRequired(): bool { return boolval($this->attr_context->is_required); }
     public function isUnique(): bool { return boolval($this->attr_context->is_unique); }
 
-    public function getName() { return $this->attr_context->name; }
-    public function getDescription() { return $this->attr_context->name; }
+    public function getName(): string { return $this->attr_context->name; }
+    public function getDescription(): string { return $this->attr_context->name; }
     public function getLastError() { return $this->last_error; }
 
-    public function isValid($value) {
+    public function isValid($value): bool {
         $value = $this->runAttrMethodStatic($value, "before_validation_fnc",$value, $method_error);
         if ($method_error) return false;
 

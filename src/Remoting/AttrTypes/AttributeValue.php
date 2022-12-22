@@ -2,10 +2,6 @@
 
 namespace API;
 
-require_once($config["path"]["absolute"]["framework"]["php"] . "/methods.php");
-require_once($config["path"]["absolute"]["framework"]["php"] . "/AttrTypes.php");
-require_once("IAttributeValue.php");
-
 class AttributeValue implements IAttributeValue {
     protected $value;
     protected $cache_value;
@@ -41,15 +37,15 @@ class AttributeValue implements IAttributeValue {
         $this->_eventManager = new \API\Event\EventManager();
     }
 
-    public function getName() {
+    public function getName(): string {
         return $this->attr_info["text_id"];
     }
 
-    public function getDataType() {
+    public function getDataType(): string {
         return $this->type;
     }
 
-    public function getDataSubType() {
+    public function getDataSubType(): ?string {
         return $this->subtype;
     }
 
@@ -57,23 +53,23 @@ class AttributeValue implements IAttributeValue {
         return $this->attr_type;
     }
 
-    public function isEdited() {
+    public function isEdited(): bool {
         return $this->is_edited;
     }
 
-    public function isLocalizable() {
+    public function isLocalizable(): bool {
         return $this->attr_info["is_localizable"] == 1;
     }
 
-    public function isRequired() {
+    public function isRequired(): bool {
         return $this->attr_info["is_required"] == 1;
     }
 
-    public function isUnique() {
+    public function isUnique(): bool {
         return $this->attr_info["is_unique"] == 1;
     }
 
-    public function isEmpty() {
+    public function isEmpty(): bool {
         return $this->attr_type->isEmpty($this->value);
     }
 
@@ -85,7 +81,7 @@ class AttributeValue implements IAttributeValue {
         return $this->cache_value;
     }
 
-    public function setValue($value) {
+    public function setValue($value): void {
         $this->is_edited = true;
         $this->cache_value = null;
         $this->value = $value;
@@ -93,7 +89,7 @@ class AttributeValue implements IAttributeValue {
         $this->eventManager()->trigger("change", $this);
     }
 
-    public function isValid() {
+    public function isValid(): bool {
         return $this->attr_type->isValid($this->value);
     }
 
@@ -105,8 +101,12 @@ class AttributeValue implements IAttributeValue {
         return $this->value;
     }
 
-    public function afterSave() {
+    public function afterSave(): void {
         
+    }
+
+    public function delete(): void {
+
     }
 
     public function __destruct() {

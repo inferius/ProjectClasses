@@ -2,7 +2,6 @@
 
 namespace API\Frontend;
 
-require_once($config["path"]["absolute"]["framework"]["php"]  . "/Exceptions/StopDrawingExceptions.inc.php");
 class PageTemplate
 {
     public static $page_variant = "web";
@@ -223,7 +222,8 @@ class PageTemplate
         global $global_data;
         global $setting;
         global $presenter;
-        global $connection;
+
+        //get_defined_vars()
 
         $async = true;
 

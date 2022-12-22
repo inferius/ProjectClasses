@@ -2,32 +2,94 @@
 namespace API;
 
 interface IAttributeValue {
-    
-    public function getName();
+    /**
+     * Vrátí název
+     * @return string
+     */
+    public function getName(): string;
 
-    public function getDataType();
+    /**
+     * Vrátí datový typ
+     * @return string
+     */
+    public function getDataType(): string;
 
-    public function getDataSubType();
+    /**
+     * Vrátí rozšiřující datový typ
+     * @return string
+     */
+    public function getDataSubType(): ?string;
 
+    /**
+     * Vrátí typovou třídu
+     * @return AttrTypeItem|null
+     */
     public function getAttrType(): ?AttrTypeItem;
 
-    public function isEdited();
+    /**
+     * Je rozeditovaný
+     * @return bool
+     */
+    public function isEdited(): bool;
 
-    public function isLocalizable();
+    /**
+     * Je lokalizovatelný
+     * @return bool
+     */
+    public function isLocalizable(): bool;
 
-    public function isRequired();
+    /**
+     * Je povinný
+     * @return bool
+     */
+    public function isRequired(): bool;
 
-    public function isUnique();
+    /**
+     * Je unikátní
+     * @return bool
+     */
+    public function isUnique(): bool;
 
-    public function isEmpty();
+    /**
+     * Je prázdny
+     * @return bool
+     */
+    public function isEmpty(): bool;
 
+    /**
+     * Vrátí hodnotu atributu
+     * @return mixed
+     */
     public function getValue();
 
-    public function setValue($value);
+    /**
+     * Nastaví hodnotu atributu
+     * @param mixed $value
+     * @return void
+     */
+    public function setValue($value): void;
 
-    public function isValid();
+    /**
+     * Je validni
+     * @return bool
+     */
+    public function isValid(): bool;
 
+    /**
+     * Uloží hodnot
+     * @return mixed
+     */
     public function save();
 
-    public function afterSave();
+    /**
+     * Metoda zavolaná po uložení objektu
+     * @return void
+     */
+    public function afterSave(): void;
+
+    /**
+     * Metoda zavolána při smazání objektu
+     * @return void
+     */
+    public function delete(): void;
 }

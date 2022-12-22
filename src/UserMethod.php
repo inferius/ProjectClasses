@@ -1,17 +1,15 @@
 <?php
 namespace API;
 
-require_once($config["path"]["absolute"]["framework"]["php"] . "/base.inc.php");
-
 class UserMethod {
     public static function get_method($method_name) {
         return UserMethod::replace_method_in_code(UserMethod::get_plain_method($method_name));
     }
 
     private static function get_plain_method($method_name) {
-        global $connection;
+        
         $method_path = __DIR__ . "/Methods/{$method_name}.php";
-        $method = $connection->fetch("SELECT * FROM methods WHERE name = '$method_name'");
+        $method = \API\Configurator::$connection->fetch("SELECT * FROM methods WHERE name = '$method_name'");
 
         if (empty($method)) {
             if (file_exists($method_path)) {

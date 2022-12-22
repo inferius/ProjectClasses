@@ -1,7 +1,5 @@
 <?php
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
+
 class Localization {
 
     private static $cahed = false;
@@ -33,13 +31,13 @@ class Localization {
     }
 
     public static function loadToCache() {
-        global $connection;
         if (self::loadToMemcache()) {
             return;
         }
 
         self::$cahed = true;
-        $list = $connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", $_SESSION[SESS_LANG]["id"]);
+        
+        $list = \API\Configurator::$connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLangugageId);
         foreach ($list as $data) {
             $text = $data["short_text"];
             if (!empty($data["content"])) $text = $data["content"];
@@ -51,8 +49,8 @@ class Localization {
     public static function getCacheValue($key) {
         global $memcache;
         global $config;
-        if (!empty($memcache)) {
-            return $memcache->get($config["localization"]["cache_prefix"] . ":" . $key);
+        if (!empty(\API\Configurator::$memcache)) {
+            return \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . $key);
         }
         else {
             return empty(self::$cache[$key]) ? null : self::$cache[$key];
@@ -60,15 +58,13 @@ class Localization {
     }
 
     public static function loadToMemcache() {
-        global $connection;
-        global $memcache;
         global $config;
 
 
-        if (!empty($memcache)) {
+        if (!empty(\API\Configurator::$memcache)) {
             $expire = 24 * 60 * 60;
 
-            $loc = $memcache->get($config["localization"]["cache_prefix"]);
+            $loc = \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix);
             //dumpe($loc);
             if (!empty($loc)) {
                 self::$cahed = true;
@@ -76,13 +72,13 @@ class Localization {
             }
             self::$cahed = true;
 
-            $memcache->set($config["localization"]["cache_prefix"], strtotime("now"), 0, $expire);
+            \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix, strtotime("now"), 0, $expire);
 
-            $list = $connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", $_SESSION[SESS_LANG]["id"]);
+            $list = \API\Configurator::$connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLangugageId);
             foreach ($list as $data) {
                 $text = $data["short_text"];
                 if (!empty($data["content"])) $text = $data["content"];
-                $memcache->set($config["localization"]["cache_prefix"] . ":" . $data["text_id"], $text, 0, $expire);
+                \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . $data["text_id"], $text, 0, $expire);
             }
             //var_dump($memcache->get("localizations"));
 
@@ -93,10 +89,3 @@ class Localization {
     }
 }
 
-class L {
-    public static function t($key, $def = "") { $k = Localization::getText($key, is_array($def) ? $def : null); if (empty($k) && !is_array($def)) return $def; return $k; }
-    public static function pt($key, $def = "") { $k = Localization::getPlainText($key, is_array($def) ? $def : null); if (empty($k) && !is_array($def)) return $def; return $k; }
-
-    public static function et($key) { echo Localization::getText($key); }
-    public static function ept($key) { echo Localization::getPlainText($key); }
-}

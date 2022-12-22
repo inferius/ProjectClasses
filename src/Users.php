@@ -1,36 +1,43 @@
 <?php
 namespace API;
 
-require_once("base.inc.php");
-require_once("methods.php");
-require_once("AttrTypes.php");
+use API\Exceptions\UserNotFoundException;
+use API\Exceptions\UserOperationNoAllowed;
+use API\Exceptions\ValidationException;
 
 class Users {
     /** @var int */
     protected $id;
-    /** @var \Nette\Database\IRow */
+    /** @var \Nette\Database\Row */
     protected $user;
 
     protected $groups = [];
     protected $group_id_list = [];
     protected $group_text_id_list = [];
 
+    private static $attributes_manager;
+
     
     public function getId(): int { return $this->id; }
     public function getName(): string { return $this->user->name; }
     public function getCreated() { return $this->user->created; }
 
+    /**
+     * @throws UserOperationNoAllowed
+     * @throws UserNotFoundException
+     */
     function __construct(int $user_id) {
-        global $context;
-        global $connection;
+        if (empty(Users::$attributes_manager)) {
+            Users::$attributes_manager = new \API\AttrTypesManager();
+        }
 
-        $this->user = $connection->fetch("SELECT * FROM users_data WHERE id = ?", $user_id);
+        $this->user = \API\Configurator::$connection->fetch("SELECT * FROM users_data WHERE id = ?", $user_id);
 
         if ($this->user == null) {
             throw new \API\Exceptions\UserNotFoundException("User not found");
         }
 
-        $groups_sql_data = $connection->fetchAll("SELECT pg.* FROM perm_groups AS pg INNER JOIN u_g ON u_g.group_id = pg.id WHERE user_id = ?", $this->user->id);
+        $groups_sql_data = \API\Configurator::$connection->query("SELECT pg.* FROM perm_groups AS pg INNER JOIN u_g ON u_g.group_id = pg.id WHERE user_id = ?", $this->user->id);
         foreach ($groups_sql_data as $gsd) {
             $this->groups[$gsd["text_id"]] = $gsd;
             $this->group_id_list[] = $gsd["id"];
@@ -54,18 +61,26 @@ class Users {
     }
 
 
+    /**
+     * @throws UserOperationNoAllowed
+     * @throws UserNotFoundException
+     */
     public static function loadByToken(string $user_logged_token) {
-        global $connection;
+        
 
-        $user = $connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND expiration > now() AND valid_from < now()", $user_logged_token);
+        $user = \API\Configurator::$connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND expiration > now() AND valid_from < now()", $user_logged_token);
 
         if ($user == null) throw new \API\Exceptions\UserNotFoundException("Token is not valid");
 
         return new Users($user["usr_grp_id"]);
     }
 
+    /**
+     * @throws UserOperationNoAllowed
+     * @throws UserNotFoundException
+     */
     private static function registerUserLogin($id, $permanent = false, $is_admin_login = false) {
-        global $connection;
+        
         $user = new Users($id);
 
         $token = \API\UserMethod::run_method("GenerateShortLoginToken", [ "user_value" => $user->getValue("email") ]);
@@ -83,7 +98,7 @@ class Users {
         $hw_info_id = self::createHwInfo();
 
         // zruseni platnosti predchozich tokenu na stejne hardware
-        $connection->query("UPDATE user_tokens SET", [
+        \API\Configurator::$connection->query("UPDATE user_tokens SET", [
             "is_valid" => 0
             ], "WHERE usr_grp_id = ? AND is_valid = 1 AND type='{$login_type}' AND hw_info_id = ?", $id, $hw_info_id);
 
@@ -91,8 +106,8 @@ class Users {
             "token" => $token,
             "type" => $login_type,
             "usr_grp_id" => $id,
-            "valid_from" => $connection::literal('NOW()'),
-            "created" => $connection::literal('NOW()'),
+            "valid_from" => \API\Configurator::$connection::literal('NOW()'),
+            "created" => \API\Configurator::$connection::literal('NOW()'),
             "hw_info_id" => $hw_info_id,
             "expiration" => $expiration,
             "is_valid" => 1
@@ -100,7 +115,7 @@ class Users {
 
 
 
-        $connection->query("INSERT INTO user_tokens", $token_table);
+        \API\Configurator::$connection->query("INSERT INTO user_tokens", $token_table);
 
         $_SESSION["user_info"] = $user;
         $_SESSION["login_data"] = [
@@ -122,7 +137,7 @@ class Users {
     }
 
     public static function logout() {
-        global $connection;
+        
 
         if (empty($_SESSION["login_data"]["is_logged"])) return;
 
@@ -135,7 +150,7 @@ class Users {
             "expiration" => null
             ];
 
-        $connection->query("UPDATE user_tokens SET", [ "is_valid" => 0], "WHERE token = ?", $token);
+        \API\Configurator::$connection->query("UPDATE user_tokens SET", [ "is_valid" => 0], "WHERE token = ?", $token);
     }
 
     /**
@@ -145,11 +160,11 @@ class Users {
      */
     public static function checkLogin(bool $strict = false): bool {
         global $config;
-        global $connection;
+        
 
         if (empty($_SESSION["login_data"]["is_logged"])) return false;
 
-        $token_info = $connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND is_valid = 1 AND expiration > now() AND (type='login' OR type = 'admin_user_login')", $_SESSION["login_data"]["token"]);
+        $token_info = \API\Configurator::$connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND is_valid = 1 AND expiration > now() AND (type='login' OR type = 'admin_user_login')", $_SESSION["login_data"]["token"]);
 
         if (empty($token_info)) return false;
 
@@ -167,7 +182,7 @@ class Users {
     public static function createHwInfo() {
         return -1;
         // global $config;
-        // global $connection;
+        // 
 
         // require_once($config["path"]["absolute"]["root"] . "/external/php/detect_hw/bw_detect.php");
         // require_once($config["path"]["absolute"]["root"] . "/external/php/detect_hw/detect.php");
@@ -200,30 +215,32 @@ class Users {
         //     $h .= "$k = '$v'";
         // }
 
-        // $exist = $connection->fetch("SELECT * FROM hw_info WHERE $h");
+        // $exist = \API\Configurator::$connection->fetch("SELECT * FROM hw_info WHERE $h");
 
         // if (empty($exist)) {
-        //     $hw_table["last_used"] = $connection::literal('NOW()');
-        //     $hw_table["created"] = $connection::literal('NOW()');
+        //     $hw_table["last_used"] = \API\Configurator::$connection::literal('NOW()');
+        //     $hw_table["created"] = \API\Configurator::$connection::literal('NOW()');
 
-        //     $connection->query("INSERT INTO hw_info", $hw_table);
-        //     return $connection->getInsertId();
+        //     \API\Configurator::$connection->query("INSERT INTO hw_info", $hw_table);
+        //     return \API\Configurator::$connection->getInsertId();
         // }
         // else {
-        //     $connection->query("UPDATE hw_info SET", ["last_used" => $connection::literal('NOW()')], "WHERE id = ?", $exist["id"]);
+        //     \API\Configurator::$connection->query("UPDATE hw_info SET", ["last_used" => \API\Configurator::$connection::literal('NOW()')], "WHERE id = ?", $exist["id"]);
         // }
 
         // return $exist["id"];
     }
 
+    /**
+     * @throws UserOperationNoAllowed
+     * @throws UserNotFoundException
+     * @throws ValidationException
+     */
     public static function createUser($name, $data, $groups): Users {
-        global $connection;
-        global $attributes_manager;
-
         $save_attrs = [];
         $errors = [];
         foreach ($data as $key => $val) {
-            $attrType = $attributes_manager->get($key);
+            $attrType = Users::$attributes_manager->get($key);
             if (!$attrType->canSave($val)) {
                 $errors[] = [
                     "type" => $attrType->getLastError(),
@@ -238,24 +255,24 @@ class Users {
             throw new \API\Exceptions\ValidationException("", 0, $errors);
         }
 
-        $connection->query("INSERT INTO users_data", array_merge([
-            "created" => $connection::literal("now()")
+        \API\Configurator::$connection->query("INSERT INTO users_data", array_merge([
+            "created" => \API\Configurator::$connection::literal("now()")
         ], $save_attrs));
         
-        return new self($connection->getInsertId());
+        return new self(\API\Configurator::$connection->getInsertId());
     }
 
+    /**
+     * @throws ValidationException
+     */
     function update($attrname, $value) {
-        global $connection;
-        global $attributes_manager;
-
-        if (!$attributes_manager->get($attrname)->canSave($value)) throw new \API\Exceptions\ValidationException($attributes_manager->get($attrname)->getLastError(), 0);
+        if (!Users::$attributes_manager->get($attrname)->canSave($value)) throw new \API\Exceptions\ValidationException(Users::$attributes_manager->get($attrname)->getLastError(), 0);
 
         $attrname = mb_strtolower($attrname, "utf8");
 
 
-        $connection->query("UPDATE users_data SET", [
-            "edited" => $connection::literal("now()"),
+        \API\Configurator::$connection->query("UPDATE users_data SET", [
+            "edited" => \API\Configurator::$connection::literal("now()"),
             $attrname => $value
         ], "WHERE id = ?", $this->id);
 
@@ -271,7 +288,7 @@ class Users {
         if (isset($this->user->$attrname)) {
 
             $value = $this->user->$attrname;
-            $value = $attributes_manager->get($attrname)->beforeReadValue($value);
+            $value = Users::$attributes_manager->get($attrname)->beforeReadValue($value);
             return $value;
         }
 

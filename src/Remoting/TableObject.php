@@ -2,7 +2,7 @@
 
 namespace API;
 
-class TableObjet {
+class TableObject {
 
     private $id = null;
     private $columnInfo = [];
@@ -29,7 +29,6 @@ class TableObjet {
     }
 
     protected function _reload() {
-        global $connection;
 
         foreach ($this->columnInfo as $key => $val) {
             $this->values[$key] = new TableAttributeValue($key, null, $val["datatype"]);
@@ -37,7 +36,7 @@ class TableObjet {
         }
 
         if ($this->id != null) {
-            $exist = $connection->fetch("SELECT * FROM `{$this->tableName}` WHERE id = ?", $this->id);
+            $exist = \API\Configurator::$connection->fetch("SELECT * FROM `{$this->tableName}` WHERE id = ?", $this->id);
             if (empty($exist)) throw new \InvalidArgumentException("Row with id '{$this->id}' on table '{$this->tableName}' not found");
 
             foreach ($exist as $key => $val) {
@@ -100,7 +99,7 @@ class TableObjet {
     }
 
     public function save() {
-        global $connection;
+        
         if (!$this->isEdited) return;
 
         $saveAttrs = [];
@@ -114,11 +113,11 @@ class TableObjet {
         }
 
         if ($this->id == null) {
-            $connection->query("INSERT INTO `{$this->tableName}` ", $saveAttrs);
-            $this->id = $connection->getInsertId();
+            \API\Configurator::$connection->query("INSERT INTO `{$this->tableName}` ", $saveAttrs);
+            $this->id = \API\Configurator::$connection->getInsertId();
         }
         else {
-            $connection->query("UPDATE `{$this->tableName}` SET ", $saveAttrs, " WHERE id = ?", $this->id);
+            \API\Configurator::$connection->query("UPDATE `{$this->tableName}` SET ", $saveAttrs, " WHERE id = ?", $this->id);
         }
     }
 
@@ -142,9 +141,9 @@ class TableObjet {
     }
 
     public function delete() {
-        global $connection;
+        
         if ($this->id == null) return;
-        $connection->query("DELETE FROM `{$this->tableName}` WHERE id = ?", $this->id);
+        \API\Configurator::$connection->query("DELETE FROM `{$this->tableName}` WHERE id = ?", $this->id);
     }
 
     public function getItem($attrName): ?TableAttributeValue {
@@ -169,30 +168,3 @@ class TableObjet {
     }
 }
 
-class TableAttributeValue {
-    protected $data_type;
-    /** @var mixed */
-    protected $value = null;
-    public $isEdited = false;
-    protected $name;
-
-    public function __construct($attrName, $value, $data_type) {
-        $this->name = $attrName;
-        $this->value = $value;
-        $this->data_type = $data_type;
-    }
-
-    public function setValue($value) {
-        $this->isEdited = true;
-        $this->value = $value;
-    }
-
-    public function getValue() {
-        return $this->value;
-    }
-
-    public function save() {
-        $this->isEdited = false;
-        return $this->value;
-    }
-}

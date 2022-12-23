@@ -80,7 +80,7 @@ final class PlainUrl {
      * @return PlainUrlToken|null
      */
     public function get(string $token, $in_groups = false) {
-        return $this->each(function($t) use ($token) { if ($t->token() == $token) return false; }, $in_groups);
+        return $this->each(function($t) use ($token) { if ($t->token() == $token) return false; return true; }, $in_groups);
     }
 
     /**
@@ -111,13 +111,14 @@ final class PlainUrl {
      * @param array|string|false $in_groups
      * @return PlainUrlToken|null
      */
-    public function each(callable $callback, $in_groups = false): PlainUrlToken {
+    public function each(callable $callback, $in_groups = false): ?PlainUrlToken {
         $last = null;
         foreach ($this->tokens as $t) {
-            if (empty($in_groups)) {
-                //if ($t->hasGroups()) continue;
-            }
-            else {
+            //if (empty($in_groups)) {
+            //    //if ($t->hasGroups()) continue;
+            //}
+            //else {
+            if (!empty($in_groups)) {
                 if (is_string($in_groups)) {
                     $not_in = PlainUrl::updateGroupName($in_groups);
                     if ($not_in && $t->hasGroup($in_groups)) continue;

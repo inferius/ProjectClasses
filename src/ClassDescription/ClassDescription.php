@@ -2,6 +2,9 @@
 
 namespace API;
 
+/**
+ * @deprecated use {@see \API\Model\ClassDescription} instead
+ */
 class ClassDescription {
 
     public static function get($class_text_id) {

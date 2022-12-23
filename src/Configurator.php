@@ -3,9 +3,9 @@
 namespace API;
 
 class Configurator {
-    /** @var Nette\Database\Context $explorer */
+    /** @var \Nette\Database\Explorer $explorer */
     public static $explorer;
-    /** @var Nette\Database\Connection $connection */
+    /** @var \Nette\Database\Connection $connection */
     public static $connection;
     /** @var \Memcache $memcache */
     public static $memcache;
@@ -23,4 +23,13 @@ class Configurator {
      * @var string
      */
     public static $localizationPrefix = "loc";
+
+    /** @var array Konfigurační pole */
+    public static $config = [];
+
+    /**
+     * Prezentační vrstva
+     * @var mixed $presenter
+     */
+    public static $presenter;
 }

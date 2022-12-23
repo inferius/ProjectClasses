@@ -114,8 +114,8 @@ class Users {
             ];
 
 
-
-        \API\Configurator::$connection->query("INSERT INTO user_tokens", $token_table);
+        /** @noinspection */
+        \API\Configurator::$connection->query("INSERT INTO user_tokens ", $token_table);
 
         $_SESSION["user_info"] = $user;
         $_SESSION["login_data"] = [
@@ -159,7 +159,7 @@ class Users {
      * @return boolean true, pokud je prihlasen
      */
     public static function checkLogin(bool $strict = false): bool {
-        global $config;
+        
         
 
         if (empty($_SESSION["login_data"]["is_logged"])) return false;
@@ -181,11 +181,11 @@ class Users {
 
     public static function createHwInfo() {
         return -1;
-        // global $config;
+        // 
         // 
 
-        // require_once($config["path"]["absolute"]["root"] . "/external/php/detect_hw/bw_detect.php");
-        // require_once($config["path"]["absolute"]["root"] . "/external/php/detect_hw/detect.php");
+        // require_once(\API\Configurator::$config["path"]["absolute"]["root"] . "/external/php/detect_hw/bw_detect.php");
+        // require_once(\API\Configurator::$config["path"]["absolute"]["root"] . "/external/php/detect_hw/detect.php");
 
         // $browser_data = browser_detection('full_assoc');
 
@@ -237,6 +237,8 @@ class Users {
      * @throws ValidationException
      */
     public static function createUser($name, $data, $groups): Users {
+        $connection = \API\Configurator::$connection;
+
         $save_attrs = [];
         $errors = [];
         foreach ($data as $key => $val) {
@@ -255,11 +257,20 @@ class Users {
             throw new \API\Exceptions\ValidationException("", 0, $errors);
         }
 
+        /** @noinspection */
         \API\Configurator::$connection->query("INSERT INTO users_data", array_merge([
             "created" => \API\Configurator::$connection::literal("now()")
         ], $save_attrs));
-        
-        return new self(\API\Configurator::$connection->getInsertId());
+        $user_id = $connection->getInsertId();
+
+        if (!empty($groups)) {
+            foreach ($groups as $grp) {
+                /** @noinspection */
+                $connection->query("INSERT INTO u_g ", [ "user_id" => $user_id, "group_id" => $grp ]);
+            }
+        }
+
+        return new self($user_id);
     }
 
     /**

@@ -48,7 +48,7 @@ class Localization {
 
     public static function getCacheValue($key) {
         global $memcache;
-        global $config;
+        
         if (!empty(\API\Configurator::$memcache)) {
             return \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . $key);
         }
@@ -58,7 +58,7 @@ class Localization {
     }
 
     public static function loadToMemcache() {
-        global $config;
+        
 
 
         if (!empty(\API\Configurator::$memcache)) {

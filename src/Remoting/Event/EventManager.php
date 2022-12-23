@@ -2,10 +2,7 @@
 
 namespace API\Event;
 
-require_once("EventInterfaces.php");
-require_once("Event.php");
-
-final class EventManager implements EventManagerInterface
+final class EventManager implements \API\Event\ EventManagerInterface
 {
     private $listeners = [];
 

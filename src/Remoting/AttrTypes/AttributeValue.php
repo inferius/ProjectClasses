@@ -2,9 +2,13 @@
 
 namespace API;
 
+use API\Model\IAttributeInfo;
+
 class AttributeValue implements IAttributeValue {
     protected $value;
     protected $cache_value;
+
+    /** @var IAttributeInfo $attr_info */
     protected $attr_info;
     /** @var \API\Event\EventManagerInterface */
     protected $_eventManager;
@@ -17,36 +21,26 @@ class AttributeValue implements IAttributeValue {
      * @var AttrTypeItem
      */
     protected $attr_type;
-    /**
-     * @var string
-     */
-    protected $type;
-    /**
-     * @var string
-     */
-    protected $subtype;
 
     protected $is_edited = false;
 
-    public function __construct($value, $attr_info) {
+    public function __construct($value, IAttributeInfo $attr_info) {
         $this->value = $value;
         $this->attr_info = $attr_info;
         $this->attr_type = new AttrTypeItem($attr_info, $this);
-        $this->type = $attr_info["data_type"];
-        $this->subtype = $attr_info["data_subtype"];
         $this->_eventManager = new \API\Event\EventManager();
     }
 
     public function getName(): string {
-        return $this->attr_info["text_id"];
+        return $this->attr_info->getTextId();
     }
 
     public function getDataType(): string {
-        return $this->type;
+        return $this->attr_info->getType();
     }
 
     public function getDataSubType(): ?string {
-        return $this->subtype;
+        return $this->attr_info->getSubtype();
     }
 
     public function getAttrType(): AttrTypeItem {
@@ -58,15 +52,15 @@ class AttributeValue implements IAttributeValue {
     }
 
     public function isLocalizable(): bool {
-        return $this->attr_info["is_localizable"] == 1;
+        return $this->attr_info->flags()->isLocalizable();
     }
 
     public function isRequired(): bool {
-        return $this->attr_info["is_required"] == 1;
+        return $this->attr_info->flags()->isRequired();
     }
 
     public function isUnique(): bool {
-        return $this->attr_info["is_unique"] == 1;
+        return $this->attr_info->flags()->isUnique();
     }
 
     public function isEmpty(): bool {

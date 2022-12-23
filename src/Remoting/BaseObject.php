@@ -2,10 +2,7 @@
 
 namespace API;
 
-
 class BaseObject {
-    /** @var string */
-    protected $tableName;
     /** @var string */
     protected $objectName;
     /** @var int */
@@ -23,6 +20,7 @@ class BaseObject {
 
     protected $use_transaction = true;
 
+    /** @var Model\ClassDescription $class_info */
     protected $class_info;
 
     /** @var IAttributeValue[]  */
@@ -94,18 +92,17 @@ class BaseObject {
     }
 
     public function __construct(string $object_type, $id = null) {
-        
+
         $this->_eventManager = new \API\Event\EventManager();
 
-        $cd = \API\ClassDescription::get($object_type);
+        $cd = \API\Model\ClassDescription::get($object_type);
 
         if (empty($cd)) {
             throw new \InvalidArgumentException("Object type '$object_type' not found");
         }
 
-        $this->class_info = $cd["text_id"];
+        $this->class_info = $cd;
         $this->objectName = $object_type;
-        $this->tableName = $cd["table"];
         $this->id = $id;
 
         $this->currentLanguage = \API\Configurator::$currentLangugageId;
@@ -128,20 +125,21 @@ class BaseObject {
      * @return static|null
      */
     public static function getObjectByAttr(string $object_type, string $attrname, $value): ?self {
-        
+
 
         if (strpos($attrname, ".") !== FALSE) {
             return null;
         }
 
-        $cd = \API\ClassDescription::get($object_type);
-        if (empty($cd["attributes"][$attrname])) return null;
+        $cd = \API\Model\ClassDescription::get($object_type);
+        if (empty($cd->getAttributeInfo($attrname))) return null;
 
-        $table_name = $cd["table"];
-        $attr = "id";
-        if ($cd["attributes"][$attrname]["description"]["is_localizable"] == 1) {
-            $table_name .= "_lang_data";
-            $attr = "parent_id";
+        $table_name = $cd->table()->getTableName();
+        $attr = $cd->table()->getColumnNameId();
+
+        if ($cd->getAttributeInfo($attrname)->flags()->isLocalizable()) {
+            $table_name = $cd->table()->getTableName();
+            $attr = $cd->table()->getColumnNameParentId();
         }
 
         $id = \API\Configurator::$connection->fetchField("SELECT $attr FROM $table_name WHERE $attrname = ?", $value);
@@ -154,9 +152,7 @@ class BaseObject {
      * @return void
      */
     public function reload() {
-        
-
-        $cd = \API\ClassDescription::get($this->objectName);
+        $cd = \API\Model\ClassDescription::get($this->getObjectName());
 
         $attrs = [
             "t.id as id",
@@ -167,20 +163,23 @@ class BaseObject {
         $plain_attrs = ["id", "created", "edited"];
 
         $data_values = [];
-        foreach ($cd["attributes"] as $key => $val) {
-            if ($val["description"]["is_localizable"] == 1) {
+
+        foreach ($cd->getAttributes() as $attr) {
+            $key = $attr->getAlias();
+
+            if ($attr->flags()->isLocalizable()) {
                 $attrs[] = "tl.{$key} as $key";
             }
             else {
                 $attrs[] = "t.{$key} as $key";
             }
             $plain_attrs[] = $key;
-            $data_values[$key] = $val["description"];
+            $data_values[$key] = $attr;
         }
 
         $sql_column = join(",", $attrs);
 
-        $data = \API\Configurator::$connection->fetch("SELECT $sql_column FROM {$cd["table"]} as t LEFT JOIN (SELECT * FROM {$cd["table"]}_lang_data WHERE lang_id = ?) AS tl ON tl.parent_id = t.id WHERE t.id = ?", $this->currentLanguage, $this->id);
+        $data = \API\Configurator::$connection->fetch("SELECT $sql_column FROM {$cd->table()->getTableName()} as t LEFT JOIN (SELECT * FROM {$cd->table()->getTableLangName()} WHERE lang_id = ?) AS tl ON tl.parent_id = t.id WHERE t.id = ?", $this->currentLanguage, $this->id);
 
         foreach ($plain_attrs as $key) {
             if (in_array($key, ["id", "created", "edited"])) {
@@ -190,7 +189,8 @@ class BaseObject {
                 }
                 continue;
             }
-            $this->values[$key] = AttributeManager::get($data == null ? null : $data[$key], $data_values[$key]);
+
+            $this->values[$key] = AttributeManager::get($data == null ? null : $data[$key], $data_values[$key], $cd);
 
             $this->values[$key]->eventManager()->attach("change", function() {
                 $this->is_edited = true;
@@ -212,17 +212,17 @@ class BaseObject {
     public function getItem(string $attrName): ?IAttributeValue {
         if (self::isBindingAttribute($attrName)) {
             $attrs = self::getFirstAttr($attrName);
-            if (empty($this->values[$attrs["attrName"]])) {
+            /*if (empty($this->values[$attrs["attrName"]])) {
                 trigger_error("Attribute '{$attrName}' on class '{$this->objectName}' not exist!", E_USER_WARNING);
                 return null;
-            }
+            }*/
             if ($this->values[$attrs["attrName"]]->isEmpty()) return $this->values[$attrs["attrName"]];
             return $this->values[$attrs["attrName"]]->getValue()->getItem($attrs["next"]);
         }
-        if (empty($this->values[$attrName])) {
+        /*if (empty($this->values[$attrName])) {
             trigger_error("Attribute '{$attrName}' on class '{$this->objectName}' not exist!", E_USER_WARNING);
             return null;
-        }
+        }*/
         return $this->values[$attrName];
     }
 
@@ -238,9 +238,8 @@ class BaseObject {
     }
 
     public function setValue($attrName, $value) {
-
         $this->is_edited = true;
-        return $this->values[$attrName]->setValue($value);
+        $this->values[$attrName]->setValue($value);
     }
 
     public static function getFirstAttr($attrName) {
@@ -260,8 +259,8 @@ class BaseObject {
      * @return void
      */
     public function delete() {
-        \API\Configurator::$connection->query("DELETE FROM {$this->tableName} WHERE id = ?", $this->id);
-        \API\Configurator::$connection->query("DELETE FROM {$this->tableName}_lang_data WHERE parent_id = ?", $this->id);
+        \API\Configurator::$connection->query("DELETE FROM {$this->class_info->table()->getTableName()} WHERE id = ?", $this->id);
+        \API\Configurator::$connection->query("DELETE FROM {$this->class_info->table()->getTableLangName()} WHERE parent_id = ?", $this->id);
 
         foreach ($this->values as $val) {
             $val->delete();
@@ -270,7 +269,7 @@ class BaseObject {
 
     public function save() {
         if (!$this->isEdited()) return;
-        
+
         try {
             if ($this->use_transaction) \API\Configurator::$connection->beginTransaction();
 
@@ -295,9 +294,9 @@ class BaseObject {
                         ];
                         continue;
                     }
-                    if ($val->isUnique()) {
+                    //if ($val->isUnique()) {
                         // TODO: doplnit unikatnost
-                    }
+                    //}
 
                     if ($val->isLocalizable()) {
                         $loc_table[$key] = $val->save();
@@ -319,12 +318,12 @@ class BaseObject {
                 $n_table["created"] = \API\Configurator::$connection::literal("now()");
                 $this->created = new \DateTime();
 
-                \API\Configurator::$connection->query("INSERT INTO {$this->tableName} ", $n_table);
+                \API\Configurator::$connection->query("INSERT INTO {$this->class_info->table()->getTableName()} ", $n_table);
 
                 $i_id = \API\Configurator::$connection->getInsertId();
                 $loc_table["parent_id"] = $i_id;
 
-                \API\Configurator::$connection->query("INSERT INTO {$this->tableName}_lang_data ", $loc_table);
+                \API\Configurator::$connection->query("INSERT INTO {$this->class_info->table()->getTableLangName()} ", $loc_table);
 
                 $this->id = $i_id;
                 $this->values["id"] = new ReadOnlyAttributeValue($i_id, "id");
@@ -333,14 +332,14 @@ class BaseObject {
                 $n_table["edited"] = \API\Configurator::$connection::literal("now()");
                 $this->edited = new \DateTime();
 
-                \API\Configurator::$connection->query("UPDATE {$this->tableName} SET", $n_table, "WHERE id = ?", $this->id);
+                \API\Configurator::$connection->query("UPDATE {$this->class_info->table()->getTableName()} SET", $n_table, "WHERE id = ?", $this->id);
                 // kontrola existence jazykove verze
-                if (empty(\API\Configurator::$connection->fetch("SELECT id FROM {$this->tableName}_lang_data WHERE parent_id = ? AND lang_id = ?", $this->id, $this->getLanguage()))) {
+                if (empty(\API\Configurator::$connection->fetch("SELECT id FROM {$this->class_info->table()->getTableLangName()} WHERE parent_id = ? AND lang_id = ?", $this->id, $this->getLanguage()))) {
                     $loc_table["parent_id"] = $this->id;
-                    \API\Configurator::$connection->query("INSERT INTO {$this->tableName}_lang_data ", $loc_table);
+                    \API\Configurator::$connection->query("INSERT INTO {$this->class_info->table()->getTableLangName()} ", $loc_table);
                 }
                 else {
-                    \API\Configurator::$connection->query("UPDATE {$this->tableName}_lang_data SET", $loc_table, "WHERE parent_id = ? AND lang_id = ?", $this->id, $this->getLanguage());
+                    \API\Configurator::$connection->query("UPDATE {$this->class_info->table()->getTableLangName()} SET", $loc_table, "WHERE parent_id = ? AND lang_id = ?", $this->id, $this->getLanguage());
                 }
             }
             $this->is_edited = false;
@@ -359,7 +358,7 @@ class BaseObject {
             if ($this->use_transaction) {
                 if ($this->is_edited == false) \API\Configurator::$connection->commit();
                 else \API\Configurator::$connection->rollBack();
-            } 
+            }
         }
     }
 

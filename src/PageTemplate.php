@@ -2,8 +2,15 @@
 
 namespace API\Frontend;
 
+use API\Configurator;
+
 class PageTemplate
 {
+    /**
+     * Nastavení zda použít proměnné z PHP souboru k šabloně přímo nebo je nuceně přidávat do $template_params proměnné
+     * @var bool
+     */
+    public static $useInTemplatePhpVars = false;
     public static $page_variant = "web";
 
     public static $js_files = [];
@@ -72,7 +79,7 @@ class PageTemplate
     }
 
     private static function load_css_internal($page_name, $template_data = null) {
-        global $config;
+        
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
 
         $old_css_path = $template_data["dirs"]["root"] . "/page.css";
@@ -93,13 +100,13 @@ class PageTemplate
         if (is_file($css_path)) {
             if (!in_array($css_path, self::$css_files)) {
                 if (!$_SESSION["is_ie"]) {
-                    //if (empty($config["debug"]["status"])) self::$print_preloaded_css[]= "appendPreloadStyleElement('{$template_data['dirs']['relative']['root']}/compile/page.min.css');";
+                    //if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_preloaded_css[]= "appendPreloadStyleElement('{$template_data['dirs']['relative']['root']}/compile/page.min.css');";
                     //else self::$print_preloaded_css[]= "appendPreloadStyleElement('{$template_data['dirs']['relative']['root']}/compile/page.css');";
-                    if (empty($config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
+                    if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
                     else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.css' rel='stylesheet' />";
                 }
                 else {
-                    if (empty($config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
+                    if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
                     else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.css' rel='stylesheet' />";
                 }
 
@@ -118,7 +125,7 @@ class PageTemplate
 
         if (is_file($css_tablet_path)) {
             if (!in_array($css_tablet_path, self::$css_tab_files)) {
-                if (empty($config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.tablet.min.css' media='screen and (min-width: 769px) and (max-width:1200px)' rel='stylesheet' />";
+                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.tablet.min.css' media='screen and (min-width: 769px) and (max-width:1200px)' rel='stylesheet' />";
                 else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.tablet.css' media='screen and (min-width: 769px) and (max-width:1200px)' rel='stylesheet' />";
 
                 self::$css_tab_files[] = $css_tablet_path;
@@ -129,7 +136,7 @@ class PageTemplate
 
         if (is_file($css_mobile_path)) {
             if (!in_array($css_mobile_path, self::$css_mob_files)) {
-                if (empty($config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.mobile.min.css' media='screen and (max-width:768px)' rel='stylesheet' />";
+                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.mobile.min.css' media='screen and (max-width:768px)' rel='stylesheet' />";
                 else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.mobile.css' media='screen and (max-width:768px)' rel='stylesheet' />";
 
                 self::$css_mob_files[] = $css_mobile_path;
@@ -140,7 +147,7 @@ class PageTemplate
     }
 
     private static function load_js_internal($page_name, $async = true, $template_data = null) {
-        global $config;
+        
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
         $js_path = $template_data["dirs"]["root"] . "/page.js";
         $ts_path = $template_data["dirs"]["root"] . "/page.ts";
@@ -153,7 +160,7 @@ class PageTemplate
         if (is_file($js_path) || is_file($ts_path)) {
             if (!in_array($js_path, self::$js_files)) {
                 if ($_SESSION["is_ie"]) {
-                    if (is_file($js_es5min_path) && empty($config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.min.js'></script>";
+                    if (is_file($js_es5min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.min.js'></script>";
                     else if (is_file($js_es5_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.js'></script>";
                     else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js'></script>";
                     self::add_full_load_data($page_name, "js", $js_es5min_path);
@@ -163,12 +170,12 @@ class PageTemplate
                         "async" => "async defer"
                     ];
                     if (!$async) $param_text["async"] = "";
-                    if (!empty($config["debug"]["status"])) {
+                    if (!empty(\API\Configurator::$config["debug"]["status"])) {
                         if (is_file($ts_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js' {$param_text["async"]}></script>";
                         else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js' {$param_text["async"]}></script>";
                     }
                     else {
-                        if (is_file($js_es2017min_path) && empty($config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.min.js' {$param_text["async"]}></script>";
+                        if (is_file($js_es2017min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.min.js' {$param_text["async"]}></script>";
                         else if (is_file($js_es2017_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js' {$param_text["async"]}></script>";
                     }
                     self::add_full_load_data($page_name, "js", $js_es2017min_path);
@@ -180,14 +187,14 @@ class PageTemplate
     }
 
     private static function getTemplateData($page_name) {
-        global $config;
+        
 
         return array(
             "dirs" => [
-                "web" => $config["path"]["absolute"]["root"] ,
-                "root" => $config["path"]["absolute"]["templates"] . "/{$page_name}",
+                "web" => \API\Configurator::$config["path"]["absolute"]["root"] ,
+                "root" => \API\Configurator::$config["path"]["absolute"]["templates"] . "/{$page_name}",
                 "relative" => [
-                    "root" => $config["path"]["relative"]["templates"] . "/{$page_name}",
+                    "root" => \API\Configurator::$config["path"]["relative"]["templates"] . "/{$page_name}",
                 ],
             ],
         );
@@ -218,10 +225,8 @@ class PageTemplate
     }
 
     private static function executeTemplate($page_name, $as_string = false, $params = []) {
-        global $config;
         global $global_data;
         global $setting;
-        global $presenter;
 
         //get_defined_vars()
 
@@ -236,7 +241,7 @@ class PageTemplate
         $template_data = self::getTemplateData($page_name);
 
         $basic_tpl_params = [
-            "config" => $config,
+            "config" => Configurator::$config,
             "tpl_params" => $template_data,
             "global" => $global_data,
             "setting" => $setting,
@@ -258,7 +263,10 @@ class PageTemplate
         //try {
             if (is_file($php_path)) {
                 include_once $php_path;
-                $vars = get_defined_vars();
+                if (self::$useInTemplatePhpVars) {
+                    $vars = get_defined_vars();
+                    $template_params = array_merge($template_params, $vars);
+                }
             }
         //}
         //catch(\API\Frontend\StopDrawingExceptions $e) {
@@ -269,30 +277,20 @@ class PageTemplate
 
         $tpl_path = $template_data["dirs"]["root"] . "/page.latte";
 
-
-        /*if (is_file($less_path)) {
-        $config["less"]["instance"]->checkedCompile($less_path, $css_path);
-        }*/
-
-
         self::load_css_internal($page_name, $template_data);
         self::load_js_internal($page_name, $async, $template_data);
 
         if (is_file($tpl_path)) {
-            if ($as_string) return $presenter->renderToString($tpl_path, $template_params);
+            if ($as_string) return Configurator::$presenter->renderToString($tpl_path, $template_params);
 
-            $presenter->render($tpl_path, $template_params);
-        } else {
-            //if (!empty($config["debug"]["status"])) {
-            //throw new \Exception("Template '{$page_name}' not found!");
-            //}
+            Configurator::$presenter->render($tpl_path, $template_params);
         }
 
         return "";
     }
 
     public static function createOptiScriptLoad() {
-        global $config;
+        
 
         $file_name_css = self::$full_load_data["#file"]["css"];
         $file_name_js = self::$full_load_data["#file"]["js"];
@@ -303,15 +301,15 @@ class PageTemplate
         $f_css_hash = sprintf('%u', crc32($file_name_css)) . ".css";
         $f_js_hash = sprintf('%u', crc32($file_name_js)). ".js";
     
-        $path_dir = $config["path"]["absolute"]["temp"] . "/CSS_JS_Cache";
-        $path_url = $config["path"]["relative"]["temp"] . "/CSS_JS_Cache";
+        $path_dir = \API\Configurator::$config["path"]["absolute"]["temp"] . "/CSS_JS_Cache";
+        $path_url = \API\Configurator::$config["path"]["relative"]["temp"] . "/CSS_JS_Cache";
 
         $css_path = $path_dir . "/" . $f_css_hash;
         $js_path = $path_dir . "/" . $f_js_hash;
 
         $css_data = "";
         $js_data = "";
-        if (!file_exists($css_path) || $config["debug"]["status"]) {
+        if (!file_exists($css_path) || \API\Configurator::$config["debug"]["status"]) {
         
             foreach (self::$full_load_data as $key => $val) {
                 

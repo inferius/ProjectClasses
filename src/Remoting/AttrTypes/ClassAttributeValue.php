@@ -2,19 +2,21 @@
 
 namespace API;
 
+use API\Model\IAttributeInfo;
+
 require_once("AttributeValue.php");
 
 class ClassAttributeValue extends AttributeValue {
     /** @var BaseObject|null */
     protected $obj_value;
-    public function __construct($value, $attr_info) {
+    public function __construct($value, IAttributeInfo $attr_info) {
         if ($value == null) $value = 1;
         parent::__construct($value, $attr_info);
     }
 
     public function getValue(): ?BaseObject {
         if (empty($this->obj_value)) {
-            $this->obj_value = $this->value == 1 ? null : new BaseObject($this->subtype, $this->value);
+            $this->obj_value = $this->value == 1 ? null : new BaseObject($this->getDataSubType(), $this->value);
             if (!empty($this->obj_value)) {
                 $this->obj_value->setUseTransaction(false);
                 $this->obj_value->eventManager()->attach("change", function() { $this->_listenerChange(); });

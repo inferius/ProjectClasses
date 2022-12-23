@@ -2,8 +2,6 @@
 
 namespace API\Event;
 
-require_once("EventInterfaces.php");
-
 class Event implements EventInterface
 {
     private $name;

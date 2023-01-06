@@ -4,8 +4,6 @@ namespace API;
 
 use API\Model\IAttributeInfo;
 
-require_once("AttributeValue.php");
-
 class ClassAttributeValue extends AttributeValue {
     /** @var BaseObject|null */
     protected $obj_value;

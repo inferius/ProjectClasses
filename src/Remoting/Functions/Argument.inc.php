@@ -19,11 +19,8 @@ class Argument {
         if (empty($this->values[$index])) return null;
         $v = $this->values[$index];
 
-        //if ($this->name === "path") {
-
-        //}
-
-        return replaceParamsInText($v);
+        if (is_callable(\API\Configurator::$replaceTextFnc)) return \API\Configurator::$replaceTextFnc($v);
+        return $v;
     }
 
     /**

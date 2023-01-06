@@ -12,7 +12,7 @@ class WatermarkFunction extends BaseFunction {
         if (empty($file)) return null;
 
         if (is_string($file->getTransformedFile())) {
-            $image = getImageManipulationInstance()->open($file->getTransformedFile());
+            $image = \API\FunctionCore::getImageManipulationInstance()->open($file->getTransformedFile());
         }
         else if (is_object($file)) {
             $image = $file->getTransformedFile();
@@ -20,7 +20,7 @@ class WatermarkFunction extends BaseFunction {
 
         if (empty($this->getArgumentValue("path"))) return $file;
 
-        $watermark = getImageManipulationInstance()->open($this->getArgumentValue("path"));
+        $watermark = \API\FunctionCore::getImageManipulationInstance()->open($this->getArgumentValue("path"));
         $point = new \Imagine\Image\Point(intval($this->getArgumentValue("x")), intval($this->getArgumentValue("y")));
 
 

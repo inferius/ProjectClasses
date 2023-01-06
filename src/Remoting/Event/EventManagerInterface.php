@@ -14,9 +14,10 @@ interface EventManagerInterface
      * @param string $event the event to attach too
      * @param callable $callback a callable function
      * @param int $priority the priority at which the $callback executed
+     * @param bool $once if true after first call will be detached
      * @return bool true on success false on failure
      */
-    public function attach(string $event, callable $callback, int $priority = 0);
+    public function attach(string $event, callable $callback, int $priority = 0, bool $once = false);
 
     /**
      * Detaches a listener from an event

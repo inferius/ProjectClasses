@@ -32,4 +32,9 @@ class Configurator {
      * @var mixed $presenter
      */
     public static $presenter;
+
+    /**
+     * @var callable Funkce pro nahrazování textu
+     */
+    public static $replaceTextFnc;
 }

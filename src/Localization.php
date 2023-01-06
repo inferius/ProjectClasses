@@ -47,8 +47,6 @@ class Localization {
     }
 
     public static function getCacheValue($key) {
-        global $memcache;
-        
         if (!empty(\API\Configurator::$memcache)) {
             return \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . $key);
         }
@@ -58,9 +56,6 @@ class Localization {
     }
 
     public static function loadToMemcache() {
-        
-
-
         if (!empty(\API\Configurator::$memcache)) {
             $expire = 24 * 60 * 60;
 
@@ -86,6 +81,12 @@ class Localization {
             return true;
         }
         else return false;
+    }
+
+    public static function clear() {
+        self::$cahed = false;
+        self::$cache = [];
+        \API\Configurator::$memcache->flush();
     }
 }
 

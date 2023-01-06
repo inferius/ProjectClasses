@@ -2,9 +2,6 @@
 
 namespace API\Frontend;
 
-require_once ("Configurator.php");
-require_once ("SettingItem.php");
-
 final class Setting {
     private $values = [];
 

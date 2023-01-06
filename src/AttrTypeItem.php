@@ -97,7 +97,8 @@ class AttrTypeItem {
 
     private function runAttrMethodStatic($value, $method_name, $default_value = null, &$is_error = false, &$error_text = "") {
         if (!empty($this->attributeInfo()->methods()->{$method_name}())) {
-            set_error_handler("warning_handler", E_ALL);
+            // TODO: Doladit Error Handler
+            //set_error_handler("warning_handler", E_ALL);
             try {
                 return \API\UserMethod::run_code($this->attributeInfo()->methods()->{$method_name}(), [ "value" => $value, "context" => $this->context ]);
             }

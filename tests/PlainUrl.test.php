@@ -92,6 +92,8 @@ final class PlainUrlTest extends TestCase {
     public function dataFirstProvider(): array {
         return [
             "has lang groups" => [ [ "language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "en" ],
+            "has !lang groups" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "9.5" ],
+            "has !lang groups-2" => [ "!language", "/en/9.5/writing-tests-for-phpunit/testurl", "9.5" ],
             "has token groups" => [ [ "token" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "token-123456987" ],
             "has no token groups" => [ [ "!token" ], "/en/9.5/writing-tests-for-phpunit/token", "en" ],
         ];
@@ -100,14 +102,40 @@ final class PlainUrlTest extends TestCase {
     public function dataUrlProvider(): array {
         return [
             "has lang groups" => [ [ "language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "/en/" ],
-            "has no lang groups" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "/9.5/writing-tests-for-phpunit/testurl/" ],
+            "has no lang groups-1" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "/9.5/writing-tests-for-phpunit/testurl/" ],
+            "has no lang groups-2" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service?test=a&b=3", "/9.5/writing-tests-for-phpunit/testurl/service/?test=a&b=3" ],
+            "has no lang groups-3" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service/?test=a&b=3", "/9.5/writing-tests-for-phpunit/testurl/service/?test=a&b=3" ],
+            "has no lang groups-4" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service/#atest", "/9.5/writing-tests-for-phpunit/testurl/service/#atest" ],
+            "has no lang groups-5" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service#test=a&b=3", "/9.5/writing-tests-for-phpunit/testurl/service/#test=a&b=3" ],
+            "has no lang groups-6" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service?a&b#test=a&b=3", "/9.5/writing-tests-for-phpunit/testurl/service/?a&b#test=a&b=3" ],
+            "has no lang groups-7" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl/service/?a&b#test=a&b=3", "/9.5/writing-tests-for-phpunit/testurl/service/?a&b#test=a&b=3" ],
+            "has lang group" => [ "language", "/en/9.5/writing-tests-for-phpunit/testurl", "/en/" ],
+            "has no lang group" => [ "!language", "/en/9.5/writing-tests-for-phpunit/testurl", "/9.5/writing-tests-for-phpunit/testurl/" ],
             "has token groups" => [ [ "token" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "/token-123456987/" ],
             "has no token groups-1" => [ [ "!token" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "/en/9.5/writing-tests-for-phpunit/" ],
             "has no token groups-2" => [ [ "!token" ], "/en/9.5/writing-tests-for-phpunit/token", "/en/9.5/writing-tests-for-phpunit/token/" ],
+            "has no token groups-3" => [ [ "!token", "!language" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "/9.5/writing-tests-for-phpunit/" ],
+            "has no token groups-4" => [ [ "!token", "!language", "!version" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "/writing-tests-for-phpunit/" ],
             "default|empty_array" => [ [], "/en/9.5/writing-tests-for-phpunit/token", "/en/9.5/writing-tests-for-phpunit/token/" ],
             "default|null" => [ null, "/en/9.5/writing-tests-for-phpunit/token", "/en/9.5/writing-tests-for-phpunit/token/" ],
             "default|false" => [ false, "/en/9.5/writing-tests-for-phpunit/token", "/en/9.5/writing-tests-for-phpunit/token/" ],
             "default|empty_string" => [ "", "/en/9.5/writing-tests-for-phpunit/token", "/en/9.5/writing-tests-for-phpunit/token/" ],
+        ];
+    }
+
+    public function dataNextUrlProvider(): array {
+        return [
+            "next-1" => [ [ "token" ], "/en/9.5/token-123654/ahoj/jak/", "ahoj" ],
+            "next-2" => [ [ "version" ], "/en/9.5/token-123654/ahoj/jak/", "token-123654" ],
+        ];
+    }
+
+    public function dataAfterUrlProvider(): array {
+        return [
+            "next-1" => [ [ "token" ], "/en/9.5/token-123654/ahoj/jak/", "/ahoj/jak/" ],
+            "next-2" => [ [ "version" ], "/en/9.5/token-123654/ahoj/jak/", "/token-123654/ahoj/jak/" ],
+            "next-3" => [ [ "language" ], "/en/9.5/token-123654/ahoj/jak/", "/9.5/token-123654/ahoj/jak/" ],
+            "next-4" => [ null, "/en/9.5/token-123654/ahoj/jak/", "/9.5/token-123654/ahoj/jak/" ],
         ];
     }
 
@@ -151,6 +179,27 @@ final class PlainUrlTest extends TestCase {
         $pu = new \API\PlainUrl($url);
 
         $this->assertSame($expected, $pu->url($groups));
+    }
+
+    /**
+     * @dataProvider dataNextUrlProvider
+     */
+    public function testNextUrl($groups, string $url, string $expected) {
+        $this->prepareData();
+        $pu = new \API\PlainUrl($url);
+
+        $this->assertSame($expected, $pu->next($pu->first($groups))->token());
+    }
+
+
+    /**
+     * @dataProvider dataAfterUrlProvider
+     */
+    public function testAfterUrl($groups, string $url, string $expected) {
+        $this->prepareData();
+        $pu = new \API\PlainUrl($url);
+
+        $this->assertSame($expected, $pu->afterUrl($pu->first($groups)));
     }
 
     /**

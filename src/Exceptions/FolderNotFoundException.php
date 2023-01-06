@@ -1,13 +1,10 @@
 <?php
 
 namespace API\Exceptions {
-	class AttributeTypeNotFound extends BaseException
+	class FolderNotFoundException extends BaseException
 	{
-		public $attrName;
 		// Redefine the exception so message isn't optional
-		public function __construct($attrname,$message, $code = 0, Exception $previous = null) {
-			// some code
-			$this->attrName = $attrname;
+		public function __construct($message, $code = 0, \Exception $previous = null) {
 			// make sure everything is assigned properly
 			parent::__construct($message, $code, $previous);
 		}
@@ -17,8 +14,5 @@ namespace API\Exceptions {
 			return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
 		}
 
-		public function customFunction() {
-			echo "A custom function for this type of exception\n";
-		}
 	}
 }

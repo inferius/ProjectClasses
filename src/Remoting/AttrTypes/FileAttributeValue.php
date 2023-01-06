@@ -153,7 +153,7 @@ class FileAttributeValue extends AttributeValue {
             //$unlink_after_copy[] = $file->getPath();
             $temp_file_path = $file->getPath();
             $file_data["relative_path"] = str_replace(\API\Configurator::$config["path"]["absolute"]["temp"], "", $temp_file_path);
-            $file_data["mime_type"] = getMimeTypeByPath($temp_file_path);
+            $file_data["mime_type"] = FunctionCore::getMimeTypeByPath($temp_file_path);
 
             $ofn = pathinfo($file_data["original_file_name"]);
             $file_data["original_file_name"] = $ofn["filename"] . "." . $file->getTargetExtension();
@@ -191,8 +191,10 @@ class FileAttributeValue extends AttributeValue {
             //$this->removeTempFile($tmp_file_id);
             $this->temp_to_delete[] = $tmp_file_id;
 
-            $finfo = $this->defaultFilePostProcess($final_file_path);
-            \API\Configurator::$connection->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $this->value);
+            if (\Nette\Utils\Strings::startsWith("image/", $file_data["mime_type"])) {
+                $finfo = $this->defaultFilePostProcess($final_file_path);
+                \API\Configurator::$connection->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $this->value);
+            }
         }
     }
 
@@ -200,13 +202,15 @@ class FileAttributeValue extends AttributeValue {
         $info = pathinfo($path);
         //$mime_type = mime_content_type($path);
 
+        if (!in_array($info["extension"], $this->image_extension)) return null;
+
         //function_exists("imageavif"),
         //function_exists("imagewebp"),
         //function_exists("imagejpeg")
 
         $relative_dir = str_replace(\API\Configurator::$config["path"]["absolute"]["uploaded"], "", $info["dirname"]);
-        $img = getImageManipulationInstance();
-        $di = getImageDriverInfo();
+        $img = FunctionCore::getImageManipulationInstance();
+        $di = FunctionCore::getImageDriverInfo();
         $img_instance = $img->open($path);
 
         $img_sizes = $this->image_size;
@@ -346,7 +350,7 @@ class FileAttributeValue extends AttributeValue {
     public function toFormat($alt = "", $config = []) {
         if ($this->isEmpty()) return null;
         else {
-            return getUpladedImageLatte($this->value, $alt, $config);
+            return FunctionCore::getUpladedImageLatte($this->value, $alt, $config);
         }
     }
 

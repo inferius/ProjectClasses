@@ -2,6 +2,9 @@
 
 namespace API;
 
+use API\Exceptions\ValidationException;
+use API\Model\DataTypes;
+
 class BaseObject {
     /** @var string */
     protected $objectName;
@@ -34,10 +37,10 @@ class BaseObject {
         return $this->_eventManager;
     }
 
-    public function setUseTransaction($lang) {
+    public function setUseTransaction(bool $lang) {
         $this->use_transaction = $lang;
     }
-    public function getUseTransaction() {
+    public function getUseTransaction(): bool {
         return $this->use_transaction;
     }
 
@@ -89,6 +92,14 @@ class BaseObject {
      */
     public function getObjectName(): string {
         return $this->objectName;
+    }
+
+    /**
+     * Vráti informace o třídě
+     * @return Model\ClassDescription
+     */
+    public function getClassInfo(): \API\Model\ClassDescription {
+        return $this->class_info;
     }
 
     public function __construct(string $object_type, $id = null) {
@@ -143,6 +154,8 @@ class BaseObject {
         }
 
         $id = \API\Configurator::$connection->fetchField("SELECT $attr FROM $table_name WHERE $attrname = ?", $value);
+
+        if (empty($id)) return null;
 
         return new self($object_type, $id);
     }
@@ -239,7 +252,43 @@ class BaseObject {
 
     public function setValue($attrName, $value) {
         $this->is_edited = true;
-        $this->values[$attrName]->setValue($value);
+        if (self::isBindingAttribute($attrName)) {
+            $attrNames = BaseObject::getFirstAttr($attrName);
+            $firstAttrName = $attrNames["attrName"];
+            $nextAttrName = $attrNames["next"];
+
+            $ai = $this->class_info->getAttributeInfo($attrNames["attrName"]);
+            if ($ai->getType() !== \API\Model\DataTypes::CLASSES) {
+                throw new \InvalidArgumentException("Not set binding attribute to value where is not type Class");
+            }
+            if ($this->values[$attrNames["attrName"]]->isEmpty()) {
+                /** @var \API\Model\ClassDescription $ci */
+                //$ci = $ai->getSpecification();
+                $o = new \API\BaseObject($ai->getSubtype());
+                $this->values[$attrNames["attrName"]]->setValue($o);
+
+                // TODO: Vymyslet lepe, nejake objektove transformace nebo neco, neni vhodne cpat do obecne metody nejake vyjimky
+                // specialita pro url
+                if ($ai->getSubtype() == "url_manager") {
+                    $url_object = $o;
+
+                    $this->eventManager()->attach("saved", function() use (&$url_object) {
+                        $url_object->setValue("table_name", "obj:" . $this->class_info->getTextId());
+                        $url_object->setValue("table_id", $this->getId());
+                        $url_object->save();
+                    }, 1, true);
+                }
+
+            }
+            else {
+                $o = $this->values[$attrNames["attrName"]]->getValue();
+            }
+
+            $o->setValue($attrNames["next"], $value);
+        }
+        else {
+            $this->values[$attrName]->setValue($value);
+        }
     }
 
     public static function getFirstAttr($attrName) {
@@ -267,6 +316,9 @@ class BaseObject {
         }
     }
 
+    /**
+     * @throws ValidationException
+     */
     public function save() {
         if (!$this->isEdited()) return;
 
@@ -294,9 +346,25 @@ class BaseObject {
                         ];
                         continue;
                     }
-                    //if ($val->isUnique()) {
-                        // TODO: doplnit unikatnost
-                    //}
+                    if ($val->isUnique() && !$val->isEmpty()) {
+                        $ai = $this->getClassInfo()->getAttributeInfo($key);
+                        // Nektere typy nepodporuji unikatnost
+                        if (!in_array($ai->getType(), [ DataTypes::CLASSES, DataTypes::FILE, DataTypes::ENUM ])) {
+                            $tbl = $val->isLocalizable() ? $this->getClassInfo()->table()->getTableLangName() : $this->getClassInfo()->table()->getTableName();
+                            $whr = "";
+                            if (!$this->isNew()) $whr .= " AND " . ($val->isLocalizable() ? "parent_id" : "id") . " != " . $this->getId();
+
+                            $exist = \API\Configurator::$connection->fetch("SELECT * FROM $tbl WHERE {$ai->getAlias()} = ? $whr", $val->getValue());
+
+                            if (!is_null($exist)) {
+                                $error_attrs[] = [
+                                    "attrName" => $key,
+                                    "error" => "not_unique"
+                                ];
+                                continue;
+                            }
+                        }
+                    }
 
                     if ($val->isLocalizable()) {
                         $loc_table[$key] = $val->save();
@@ -351,14 +419,15 @@ class BaseObject {
         catch (\API\Exceptions\ValidationException $e) {
             throw $e;
         }
-        catch (\Exception $e) {
-            throw $e;
-        }
         finally {
             if ($this->use_transaction) {
                 if ($this->is_edited == false) \API\Configurator::$connection->commit();
                 else \API\Configurator::$connection->rollBack();
             }
+            if ($this->is_edited == false) {
+                $this->eventManager()->trigger("saved", $this);
+            }
+
         }
     }
 

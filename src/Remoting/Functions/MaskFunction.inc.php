@@ -11,7 +11,7 @@ class MaskFunction extends BaseFunction {
         if (empty($file)) return null;
 
         if (is_string($file->getTransformedFile())) {
-            $image = getImageManipulationInstance()->open($file->getTransformedFile());
+            $image = \API\FunctionCore::getImageManipulationInstance()->open($file->getTransformedFile());
         }
         else if (is_object($file)) {
             $image = $file->getTransformedFile();
@@ -19,7 +19,7 @@ class MaskFunction extends BaseFunction {
 
         if (empty($this->getArgumentValue("path"))) return $file;
 
-        $mask = getImageManipulationInstance()->open($this->getArgumentValue("path"));
+        $mask = \API\FunctionCore::getImageManipulationInstance()->open($this->getArgumentValue("path"));
 
         if ($image->getSize()->getWidth() < $mask->getSize()->getWidth() || $image->getSize()->getWidth() > $mask->getSize()->getWidth()) {
             $mask->resize($mask->getSize()->widen($image->getSize()->getWidth()));

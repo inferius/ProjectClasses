@@ -6,13 +6,14 @@ final class EventManager implements \API\Event\ EventManagerInterface
 {
     private $listeners = [];
 
-    public function attach(string $event, callable $callback, int $priority = 0): bool {
+    public function attach(string $event, callable $callback, int $priority = 0, bool $once = false): bool {
         $this->detach($event, $callback);
 
         $this->listeners[] = [
             "event" => $event,
             "callback" => $callback,
-            "priority" => $priority
+            "priority" => $priority,
+            "once" => $once
         ];
 
         usort($this->listeners, function ($a, $b){
@@ -59,6 +60,10 @@ final class EventManager implements \API\Event\ EventManagerInterface
         foreach($this->listeners as $key=>$listener) {
             if ($listener["event"] == $event_name) {
                 $result = $listener["callback"]($event);
+
+                if ($listener["once"]) {
+                    $this->detach($event_name, $listener["callback"]);
+                }
 
                 if ($event->isPropagationStopped()) {
                     return $result;

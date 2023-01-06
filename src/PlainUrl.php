@@ -9,10 +9,27 @@ final class PlainUrl {
      */
     private $tokens = [];
     private $original;
+    private $original_plain;
+    private $query;
+    private $fragment;
     private $contains_empty_token = false;
 
     private static $groups = [];
 
+
+    /**
+     * @return ?string Vrátí query z předané adresy, tedy obsah za ?
+     */
+    public function query(): ?string {
+        return $this->query;
+    }
+
+    /**
+     * @return ?string Vrátí query z předané adresy, tedy obsah za #
+     */
+    public function fragment(): ?string {
+        return $this->fragment;
+    }
 
     /**
      * Vrátí seznam tokenu
@@ -102,34 +119,101 @@ final class PlainUrl {
      */
     public function last($in_groups = false) {
         if (empty($this->tokens)) return null;
-        return $this->each(function($tok) {}, $in_groups);
+        return $this->each(function() {}, $in_groups);
+    }
+
+    /**
+     * Vrátí následující token
+     *
+     * @param PlainUrlToken $token Token od ktérého se začína
+     * @param array|string|false $in_groups
+     * @return PlainUrlToken|null
+     */
+    public function next(PlainUrlToken $token, $in_groups = false): ?PlainUrlToken {
+        if (empty($this->tokens)) return null;
+        return $this->each(function() {return false;}, $in_groups, $token);
+    }
+
+    /**
+     * Vrátí následující tokeny
+     *
+     * @param PlainUrlToken $token Token od ktérého se začína
+     * @param array|string|false $in_groups
+     * @return PlainUrlToken[]
+     */
+    public function afterTokens(PlainUrlToken $token, $in_groups = false): array {
+        $toks = [];
+
+        $this->each(function ($t) use(&$toks) {
+            $toks[] = $t;
+        }, $in_groups, $token);
+
+        return $toks;
+    }
+
+    /**
+     * Vrátí následující URL
+     *
+     * @param ?PlainUrlToken $token Token od ktérého se začína
+     * @param $in_groups
+     * @return ?string
+     */
+    public function afterUrl(?PlainUrlToken $token, $in_groups = false, bool $withQuery = true, bool $withFragment = true): ?string {
+        $url = "/";
+
+        $this->each(function ($t) use (&$url) {
+            $url .= $t->token() . "/";
+        }, $in_groups, $token);
+
+        return $this->appendQueryFragment($url, $withQuery, $withFragment);
     }
 
     /**
      * Projde všechny tokeny
      * @param callable $callback funkce, ktere je predan token, pokud funkce vrati false, je ukonceno prochazeni
      * @param array|string|false $in_groups
+     * @param PlainUrlToken|null $starsFrom Předáva token od kterého začít prohledávát samotny
      * @return PlainUrlToken|null
      */
-    public function each(callable $callback, $in_groups = false): ?PlainUrlToken {
+    public function each(callable $callback, $in_groups = false, ?PlainUrlToken $starsFrom = null): ?PlainUrlToken {
         $last = null;
-        foreach ($this->tokens as $t) {
-            //if (empty($in_groups)) {
-            //    //if ($t->hasGroups()) continue;
-            //}
-            //else {
-            if (!empty($in_groups)) {
-                if (is_string($in_groups)) {
-                    $not_in = PlainUrl::updateGroupName($in_groups);
-                    if ($not_in && $t->hasGroup($in_groups)) continue;
-                    else if (!$not_in && !$t->hasGroup($in_groups)) continue;
+        $check_groups = false;
+        $checked_method = function ($m) { return true; };
+        if (!empty($in_groups)) {
+            $check_groups = true;
 
+            if (is_string($in_groups)) {
+                $not_in = PlainUrl::updateGroupName($in_groups);
+                $checked_method = function ($token) use ($not_in, $in_groups) {
+                    if ($not_in && $token->hasGroup($in_groups)) return false;
+                    else if (!$not_in && !$token->hasGroup($in_groups)) return false;
+
+                    return true;
+                };
+
+            }
+            else if (is_array($in_groups)) {
+                $group_data = PlainUrl::groupParser($in_groups);
+                $checked_method = function ($token) use ($group_data) {
+                    if ($token->hasAnyGroups($group_data["not_in"])) return false;
+                    else if (!$token->hasAllGroups($group_data["in"])) return false;
+
+                    return true;
+                };
+            }
+        }
+
+        $found = false;
+        foreach ($this->tokens as $t) {
+            if (!empty($starsFrom) && !$found) {
+                if ($t === $starsFrom) {
+                    $found = true;
                 }
-                else if (is_array($in_groups)) {
-                    $group_data = PlainUrl::groupParser($in_groups);
-                    if ($t->hasAnyGroups($group_data["not_in"])) continue;
-                    else if (!$t->hasAllGroups($group_data["in"])) continue;
-                }
+                continue;
+            }
+
+            if ($check_groups) {
+                if (!$checked_method($t)) continue;
             }
 
             if ($callback($t) === false) return $t;
@@ -207,7 +291,7 @@ final class PlainUrl {
      */
     public function redirectWithoutSlash() {
         $t = $this->last();
-        $url = self::addSlashEnd($this->original);
+        $url = $this->appendQueryFragment(self::addSlashEnd($this->original_plain));
 
         if ($t != null) {
             if (!$t->slashAtEnd()) {
@@ -218,27 +302,39 @@ final class PlainUrl {
         }
     }
 
+    private function appendQueryFragment(?string $url, bool $withQuery = true, bool $withFragment = true) {
+        if (empty($url)) return $url;
+        if ($withQuery && !empty($this->query)) $url .= "?" . $this->query;
+        if ($withFragment && !empty($this->fragment)) $url .= "#" . $this->fragment;
+
+        return $url;
+    }
+
     /**
-     * Vrátí URL adresu složenou s tokenu
-     * @param array|string|false $in_groups
-     * @return string
+     * Vrátí adresu složenou s tokenů
+     * @param $in_groups array|string|false $in_groups Obsahuje seznam skupin nebo false, pokud obsahuje false vrátí jen pokud není v žádné skupině
+     * @param bool $withQuery true pokud vrátit query
+     * @param bool $withFragment true pokud vrátit fragmenty
+     * @return string|null
      */
-    public function url($in_groups = false): string {
+    public function url($in_groups = false, bool $withQuery = true, bool $withFragment = true): ?string {
         $url = "/";
 
         $this->each(function ($t) use (&$url) {
             $url .= $t->token() . "/";
         }, $in_groups);
 
-        return $url;
+        return $this->appendQueryFragment($url, $withQuery, $withFragment);
     }
 
     /**
      * Vrátí první část URL
      * @param array|string|false $in_groups
+     * @param bool $withQuery true pokud vrátit query
+     * @param bool $withFragment true pokud vrátit fragmenty
      * @return string
      */
-    public function firstUrl($in_groups = false): string {
+    public function firstUrl($in_groups = false, bool $withQuery = true, bool $withFragment = true): string {
         $url = "/";
 
         $this->each(function ($t) use (&$url) {
@@ -281,7 +377,13 @@ final class PlainUrl {
         if (empty($custom_url)) $p_url = $_SERVER['REQUEST_URI'];
         $p_url = $custom_url;
 
+        $parsed_url = parse_url($p_url);
+        $this->query = empty($parsed_url["query"]) ? null : $parsed_url["query"];
+        $this->fragment = empty($parsed_url["fragment"]) ? null : $parsed_url["fragment"];
+        $this->original_plain = $parsed_url["path"];
         $this->original = $p_url;
+
+        $p_url = $this->original_plain;
 
         $token = "";
         $token_count = 0;
@@ -302,7 +404,7 @@ final class PlainUrl {
                 }
             }
 
-            $this->tokens[] = new PlainUrlToken($token, $grps, $slash_at_end, $token_count++, $no_group_token, $custom_data);
+            $this->tokens[] = new PlainUrlToken($token, $grps, $slash_at_end, $token_count++, $no_group_token, $this, $custom_data);
 
             if (count($grps) == 0) $no_group_token++;
 

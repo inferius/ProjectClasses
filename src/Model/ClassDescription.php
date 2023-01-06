@@ -76,7 +76,7 @@ class ClassDescription/* implements ArrayAccess*/ {
 
 
             if ($a_class->getType() === DataTypes::CLASSES) {
-                $a_class->setSpecification(ClassDescription::get($attr["data_subtype"]));
+                $a_class->setSpecification($attr["data_subtype"] == $this->text_id ? $this : ClassDescription::get($attr["data_subtype"]));
             }
             else if ($a_class->getType() === DataTypes::ENUM) {
                 $a_class->setSpecification(getEnumDescription_P($attr["data_subtype"]));
@@ -91,10 +91,13 @@ class ClassDescription/* implements ArrayAccess*/ {
         $cache_key = "ModelClassDescription[MODEL]:" . $text_id;
 
         if (!empty(\API\Configurator::$memcache)) {
-            $cm = unserialize(\API\Configurator::$memcache->get($cache_key));
-            if ($cm instanceof ClassDescription) return $cm;
-            else {
-                trigger_error("Deserialize ClassDescription not working", E_USER_WARNING);
+            $deserialized_data = \API\Configurator::$memcache->get($cache_key);
+            if (!empty($deserialized_data)) {
+                $cm = unserialize($deserialized_data);
+                if ($cm instanceof ClassDescription) return $cm;
+                else {
+                    trigger_error("Deserialize ClassDescription not working", E_USER_WARNING);
+                }
             }
         }
 

@@ -11,24 +11,26 @@ class PageTemplate
      * @var bool
      */
     public static $useInTemplatePhpVars = false;
-    public static $page_variant = "web";
-
     public static $js_files = [];
     public static $css_files = [];
-    public static $css_mob_files = [];
-    public static $css_tab_files = [];
-
     public static $print_end_script = [];
-    public static $print_preloaded_css = [];
 
     public static $external_file_loaded_js = [];
     public static $external_file_loaded_css = [];
 
-    private static $once_load_temlate = [];
+    private static $once_load_template = [];
 
     private static $full_load_data = [ "#file" => [ "css" => "", "js" => "" ] ];
+    private static $global_vars = [];
 
-    public static function loadExternalJS($filelist = []) {
+    private static $template_configuration = [];
+
+    /**
+     * Načte externí JS soubor/y
+     * @param string|string[] $filelist Seznam souborů
+     * @return void
+     */
+    public static function loadExternalJS($filelist = []): void {
         $endArr = null;
         if (is_string($filelist)) {
             $endArr = [ $filelist ];
@@ -45,7 +47,12 @@ class PageTemplate
         }
     }
 
-    public static function loadExternalCSS($filelist = []) {
+    /**
+     * Načte externí CSS soubor/y
+     * @param string|string[] $filelist Seznam souborů
+     * @return void
+     */
+    public static function loadExternalCSS($filelist = []): void {
         $endArr = null;
         if (is_string($filelist)) {
             $endArr = [ $filelist ];
@@ -62,12 +69,51 @@ class PageTemplate
         }
     }
 
+    /**
+     * Nastavní konfiguraci pro šablony
+     * @param $config array Konfigurační sada
+     * @example
+     * [
+     * "dirs" => [
+     *    "web" => \API\Configurator::$config["path"]["absolute"]["root"] ,
+     *    "root" => \API\Configurator::$config["path"]["absolute"]["templates"],
+     *    "relative" => [
+     *      "root" => \API\Configurator::$config["path"]["relative"]["templates"],
+     *    ],
+     *    ],
+     * ];
+     * @return void
+     */
+    public static function configure($config): void {
+        self::$template_configuration = $config;
+    }
 
     /**
-     * Načte pouze javascriptove soubory nebo styly pro danou stranku, bez toho aniz by vykreslila jeji obsah
+     * Přídá novou přoměnnou do globálních, které budou dostupné v každé šabloně
+     * @param string $name Název proměnné použítý v šabloně
+     * @param mixed|callable $var
+     * @return void
+     */
+    public static function addGlobalVar(string $name, $var): void {
+        self::$global_vars[$name] = $var;
+    }
+
+    /**
+     * Načte pouze JS a CSS soubory pro danou stranku, šablona a PHP soubor se v tomto případě nezpracovávájí
+     *
+     * @deprecated use loadCssJs instead
      */
     public static function load_css_js($page_name, $load_param = [ "css" => true, "js" => true, "async" => true ]) {
-        if (!empty($load_param["css"])) self::load_css_internal($page_name, null);
+        return self::loadCssJs($page_name, $load_param);
+    }
+
+    /**
+     * Načte pouze JS a CSS soubory pro danou stranku, šablona a PHP soubor se v tomto případě nezpracovávájí
+     * @param string $page_name Název šablony
+     * @param array $load_param Inicializační parametry [ "css" => true, "js" => true, "async" => true ]
+     */
+    public static function loadCssJs(string $page_name, array $load_param = [ "css" => true, "js" => true, "async" => true ]) {
+        if (!empty($load_param["css"])) self::load_css_internal($page_name, null, empty($load_param["async"]) ? true : $load_param["async"]);
         if (!empty($load_param["js"])) self::load_js_internal($page_name, empty($load_param["async"]) ? true : $load_param["async"],  null);
     }
 
@@ -78,7 +124,7 @@ class PageTemplate
         self::$full_load_data["#file"][$type] .= $page_name;
     }
 
-    private static function load_css_internal($page_name, $template_data = null) {
+    private static function load_css_internal($page_name, $template_data = null, $async = false) {
         
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
 
@@ -88,27 +134,21 @@ class PageTemplate
         $css_min_path = $template_data["dirs"]["root"] . "/compile/page.min.css";
         $less_path = $template_data["dirs"]["root"] . "/page.less";
 
-        $css_mobile_path = $template_data["dirs"]["root"] . "/compile/page.mobile.css";
-        $css_mobile_min_path = $template_data["dirs"]["root"] . "/compile/page.mobile.min.css";
-        $less_mobile_path = $template_data["dirs"]["root"] . "/page.mobile.less";
+        $rel_attr = 'rel="stylesheet"';
+        if ($async) {
+            $rel_attr = 'rel="preload" as="style" onload="this.rel=\'stylesheet\'"';
+        }
 
-        $css_tablet_path = $template_data["dirs"]["root"] . "/compile/page.tablet.css";
-        $css_tablet_min_path = $template_data["dirs"]["root"] . "/compile/page.tablet.min.css";
-        $less_tablet_path = $template_data["dirs"]["root"] . "/page.tablet.less";
+        $getFile = function ($fileName) use ($rel_attr) {
+            return  "<link href='$fileName' $rel_attr />";
+        };
 
 
         if (is_file($css_path)) {
             if (!in_array($css_path, self::$css_files)) {
-                if (!$_SESSION["is_ie"]) {
-                    //if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_preloaded_css[]= "appendPreloadStyleElement('{$template_data['dirs']['relative']['root']}/compile/page.min.css');";
-                    //else self::$print_preloaded_css[]= "appendPreloadStyleElement('{$template_data['dirs']['relative']['root']}/compile/page.css');";
-                    if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
-                    else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.css' rel='stylesheet' />";
-                }
-                else {
-                    if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.min.css' rel='stylesheet' />";
-                    else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.css' rel='stylesheet' />";
-                }
+                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/compile/page.min.css");
+                else self::$print_end_script[] = $getFile("{$template_data['dirs']['relative']['root']}/compile/page.css");
+
 
                 self::$css_files[] = $css_path;
                 self::add_full_load_data($page_name, "css", $css_min_path);
@@ -116,38 +156,16 @@ class PageTemplate
         }
         else if (is_file($old_css_path)) {
             if (!in_array($old_css_path, self::$css_files)) {
-                self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/page.css' rel='stylesheet' />";
+                self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/page.css");
 
                 self::$css_files[] = $old_css_path;
                 self::add_full_load_data($page_name, "css", $old_css_path);
             }
         }
 
-        if (is_file($css_tablet_path)) {
-            if (!in_array($css_tablet_path, self::$css_tab_files)) {
-                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.tablet.min.css' media='screen and (min-width: 769px) and (max-width:1200px)' rel='stylesheet' />";
-                else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.tablet.css' media='screen and (min-width: 769px) and (max-width:1200px)' rel='stylesheet' />";
-
-                self::$css_tab_files[] = $css_tablet_path;
-                self::add_full_load_data($page_name, "css", $css_tablet_min_path);
-            }
-        }
-
-
-        if (is_file($css_mobile_path)) {
-            if (!in_array($css_mobile_path, self::$css_mob_files)) {
-                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<link href='{$template_data['dirs']['relative']['root']}/compile/page.mobile.min.css' media='screen and (max-width:768px)' rel='stylesheet' />";
-                else self::$print_end_script[]=  "<link href='{$template_data['dirs']['relative']['root']}/compile/page.mobile.css' media='screen and (max-width:768px)' rel='stylesheet' />";
-
-                self::$css_mob_files[] = $css_mobile_path;
-                self::add_full_load_data($page_name, "css", $css_mobile_min_path);
-            }
-        }
-
     }
 
     private static function load_js_internal($page_name, $async = true, $template_data = null) {
-        
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
         $js_path = $template_data["dirs"]["root"] . "/page.js";
         $ts_path = $template_data["dirs"]["root"] . "/page.ts";
@@ -187,17 +205,15 @@ class PageTemplate
     }
 
     private static function getTemplateData($page_name) {
-        
-
-        return array(
+        return [
             "dirs" => [
-                "web" => \API\Configurator::$config["path"]["absolute"]["root"] ,
-                "root" => \API\Configurator::$config["path"]["absolute"]["templates"] . "/{$page_name}",
+                "web" => self::$template_configuration["dirs"]["web"],
+                "root" => self::$template_configuration["dirs"]["root"] . "/{$page_name}",
                 "relative" => [
-                    "root" => \API\Configurator::$config["path"]["relative"]["templates"] . "/{$page_name}",
+                    "root" => self::$template_configuration["dirs"]["relative"]["root"] . "/{$page_name}",
                 ],
             ],
-        );
+        ];
     }
 
     /**
@@ -214,8 +230,8 @@ class PageTemplate
     */
     public static function showOnce($page_name, $params = [])
     {
-        if (in_array($page_name, self::$once_load_temlate)) return;
-        self::$once_load_temlate[] = $page_name;
+        if (in_array($page_name, self::$once_load_template)) return;
+        self::$once_load_template[] = $page_name;
 
         self::executeTemplate($page_name, false, $params);
     }
@@ -225,28 +241,27 @@ class PageTemplate
     }
 
     private static function executeTemplate($page_name, $as_string = false, $params = []) {
-        global $global_data;
-        global $setting;
-
-        //get_defined_vars()
-
         $async = true;
 
         if (isset($params["async"]))  {
             $async = $params["async"];
             unset($params["async"]);
         }
-        //global $template_params;
 
         $template_data = self::getTemplateData($page_name);
 
         $basic_tpl_params = [
-            "config" => Configurator::$config,
             "tpl_params" => $template_data,
-            "global" => $global_data,
-            "setting" => $setting,
-            "user" => \API\Users::getLoggedUser()
         ];
+
+        foreach (self::$global_vars as $key => $val) {
+            if (is_callable($val)) {
+                $basic_tpl_params[$key] = $val();
+            }
+            else{
+                $basic_tpl_params[$key] = $val;
+            }
+        }
 
 
         if (!empty($params) && is_array($params)) {
@@ -262,10 +277,20 @@ class PageTemplate
         $php_path = $template_data["dirs"]["root"] . "/page.php";
         //try {
             if (is_file($php_path)) {
+                // Inicializace globalnich promennych
+                foreach (self::$global_vars as $key => $val) {
+                    if (is_callable($val)) {
+                        $$key = $val();
+                    }
+                    else{
+                        $$key = $val;
+                    }
+                }
+
                 include_once $php_path;
                 if (self::$useInTemplatePhpVars) {
                     $vars = get_defined_vars();
-                    $template_params = array_merge($template_params, $vars);
+                    $template_params = array_merge($vars, $template_params);
                 }
             }
         //}
@@ -294,9 +319,6 @@ class PageTemplate
 
         $file_name_css = self::$full_load_data["#file"]["css"];
         $file_name_js = self::$full_load_data["#file"]["js"];
-
-        //$f_css_hash = hash("SHA512", $file_name_css) . ".css";
-        //$f_js_hash = hash("SHA512", $file_name_js) . ".js";
 
         $f_css_hash = sprintf('%u', crc32($file_name_css)) . ".css";
         $f_js_hash = sprintf('%u', crc32($file_name_js)). ".js";

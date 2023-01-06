@@ -32,6 +32,7 @@ class UserMethod {
     }
 
     public static function replace_method_in_code($code) {
+        $code = str_replace(["<?php", "?>"], "", $code);
         $res = preg_match_all("/API.Method::([A-Za-z_\-0-9]+);/", $code, $matches);
 
         if (empty($res)) return $code;

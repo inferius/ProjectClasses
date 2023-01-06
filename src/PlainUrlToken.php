@@ -12,6 +12,9 @@ final class PlainUrlToken {
     private $no_group_position;
     private $custom_data = [];
 
+    /** @var PlainUrl $plain_url */
+    private $plain_url;
+
     public function token($is_plain = false): string {
         return $is_plain ? $this->plain_token : $this->token;
     }
@@ -100,6 +103,17 @@ final class PlainUrlToken {
     }
 
     /**
+     * Vrátí následující token
+     *
+     * @param PlainUrlToken $token Token od ktérého se začína
+     * @param array|string|false $in_groups
+     * @return PlainUrlToken|null
+     */
+    public function next($in_groups = false): ?PlainUrlToken {
+         return $this->plain_url->next($this, $in_groups);
+    }
+
+    /**
      * Vrátí vlastní data
      * @param string $key
      * @return mixed|null
@@ -109,7 +123,7 @@ final class PlainUrlToken {
         else return $this->custom_data[$key];
     }
 
-    public function __construct(string $token, array $groups, bool $slash_at_end, int $position, int $no_group_position, array $custom_data = []) {
+    public function __construct(string $token, array $groups, bool $slash_at_end, int $position, int $no_group_position, PlainUrl $plain_url, array $custom_data = []) {
         $this->token = $token;
         $this->plain_token = html_entity_decode(urldecode($token));
         $this->groups = $groups;
@@ -117,6 +131,7 @@ final class PlainUrlToken {
         $this->position = $position;
         $this->custom_data = $custom_data;
         $this->no_group_position = $no_group_position;
+        $this->plain_url = $plain_url;
     }
 
 }

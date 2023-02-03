@@ -21,15 +21,22 @@ class Users {
     public function getId(): int { return $this->id; }
     public function getName(): string { return $this->user->name; }
     public function getCreated() { return $this->user->created; }
+    public function getGroups() { return empty($this->groups) ? null : array_keys($this->groups); }
+
+    private static function getAttributeManager(): \API\AttrTypesManager {
+        if (empty(self::$attributes_manager)) {
+            self::$attributes_manager = new \API\AttrTypesManager();
+        }
+
+        return self::$attributes_manager;
+    }
 
     /**
      * @throws UserOperationNoAllowed
      * @throws UserNotFoundException
      */
     function __construct(int $user_id) {
-        if (empty(Users::$attributes_manager)) {
-            Users::$attributes_manager = new \API\AttrTypesManager();
-        }
+
 
         $this->user = \API\Configurator::$connection->fetch("SELECT * FROM users_data WHERE id = ?", $user_id);
 
@@ -159,9 +166,6 @@ class Users {
      * @return boolean true, pokud je prihlasen
      */
     public static function checkLogin(bool $strict = false): bool {
-        
-        
-
         if (empty($_SESSION["login_data"]["is_logged"])) return false;
 
         $token_info = \API\Configurator::$connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND is_valid = 1 AND expiration > now() AND (type='login' OR type = 'admin_user_login')", $_SESSION["login_data"]["token"]);
@@ -242,7 +246,7 @@ class Users {
         $save_attrs = [];
         $errors = [];
         foreach ($data as $key => $val) {
-            $attrType = Users::$attributes_manager->get($key);
+            $attrType = Users::getAttributeManager()->get($key);
             if (!$attrType->canSave($val)) {
                 $errors[] = [
                     "type" => $attrType->getLastError(),
@@ -277,7 +281,7 @@ class Users {
      * @throws ValidationException
      */
     function update($attrname, $value) {
-        if (!Users::$attributes_manager->get($attrname)->canSave($value)) throw new \API\Exceptions\ValidationException(Users::$attributes_manager->get($attrname)->getLastError(), 0);
+        if (!Users::getAttributeManager()->get($attrname)->canSave($value)) throw new \API\Exceptions\ValidationException(Users::getAttributeManager()->get($attrname)->getLastError(), 0);
 
         $attrname = mb_strtolower($attrname, "utf8");
 
@@ -295,11 +299,11 @@ class Users {
     }
 
     public function getValue($attrname) {
-        global $attributes_manager;
         if (isset($this->user->$attrname)) {
 
             $value = $this->user->$attrname;
-            $value = Users::$attributes_manager->get($attrname)->beforeReadValue($value);
+
+            $value = Users::getAttributeManager()->get($attrname)->beforeReadValue($value);
             return $value;
         }
 

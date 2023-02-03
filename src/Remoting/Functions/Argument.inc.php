@@ -19,7 +19,9 @@ class Argument {
         if (empty($this->values[$index])) return null;
         $v = $this->values[$index];
 
-        if (is_callable(\API\Configurator::$replaceTextFnc)) return \API\Configurator::$replaceTextFnc($v);
+        if (is_callable(\API\Configurator::$replaceTextFnc))
+            $fnc = \API\Configurator::$replaceTextFnc;
+            return $fnc($v);
         return $v;
     }
 

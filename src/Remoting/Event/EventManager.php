@@ -2,7 +2,7 @@
 
 namespace API\Event;
 
-final class EventManager implements \API\Event\ EventManagerInterface
+final class EventManager implements \API\Event\EventManagerInterface
 {
     private $listeners = [];
 

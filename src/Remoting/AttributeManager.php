@@ -13,6 +13,14 @@ class AttributeManager {
                 return new FileAttributeValue($value, $attrInfo, $classDescription->getTextId());
             case DataTypes::CLASSES:
                 return new ClassAttributeValue($value, $attrInfo);
+            case DataTypes::DATE:
+            case DataTypes::TIME:
+            case DataTypes::DATETIME:
+                return new DateTimeAttributeValue($value, $attrInfo);
+            case DataTypes::DECIMAL:
+            case DataTypes::INT:
+            case DataTypes::FLOAT:
+                return new NumberAttributeValue($value, $attrInfo);
             default:
                 return new AttributeValue($value, $attrInfo);
         }

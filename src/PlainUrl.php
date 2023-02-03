@@ -97,7 +97,11 @@ final class PlainUrl {
      * @return PlainUrlToken|null
      */
     public function get(string $token, $in_groups = false) {
-        return $this->each(function($t) use ($token) { if ($t->token() == $token) return false; return true; }, $in_groups);
+        $tok = $this->each(function($t) use ($token) { if ($t->token() == $token) return false; return true; }, $in_groups);
+        if (empty($tok)) return null;
+        else {
+            return $tok->token() === $token ? $tok : null;
+        }
     }
 
     /**

@@ -45,13 +45,27 @@ class BaseObject {
     }
 
     /**
+     * Datum a čas vytvoření objektu
+     * @return \DateTime|null
+     */
+    public function getCreated(): ?\DateTime {
+        return $this->created;
+    }
+
+    /**
      * Nastavení ID jazyka
      * @param int $lang
      * @return void
      */
     public function setLanguage(int $lang) {
         $this->currentLanguage = $lang;
+
         $this->reload();
+        foreach ($this->values as $key => $attr) {
+            if ($attr instanceof \API\ClassAttributeValue) {
+                if (!empty($attr->getValue())) $attr->getValue()->setLanguage($lang);
+            }
+        }
     }
 
     /**
@@ -230,6 +244,7 @@ class BaseObject {
                 return null;
             }*/
             if ($this->values[$attrs["attrName"]]->isEmpty()) return $this->values[$attrs["attrName"]];
+            if (empty($this->values[$attrs["attrName"]]->getValue())) return null;
             return $this->values[$attrs["attrName"]]->getValue()->getItem($attrs["next"]);
         }
         /*if (empty($this->values[$attrName])) {

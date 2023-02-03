@@ -2,6 +2,8 @@
 
 namespace API\Model;
 
+use API\Exceptions\AttributeTypeNotFound;
+
 class ClassDescription/* implements ArrayAccess*/ {
 
     /** @var string $name */
@@ -52,10 +54,11 @@ class ClassDescription/* implements ArrayAccess*/ {
      * Vrátí atribut
      * @param string $attrName
      * @return IAttributeInfo
+     * @throws AttributeTypeNotFound
      */
     public function getAttributeInfo(string $attrName): IAttributeInfo {
         if (empty($this->attributes[$attrName])) {
-            throw new \InvalidArgumentException("Attribute '$attrName' on class {$this->text_id}.");
+            throw new \API\Exceptions\AttributeTypeNotFound("Attribute '$attrName' on class {$this->text_id}.");
         }
         return $this->attributes[$attrName];
     }

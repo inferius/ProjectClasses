@@ -191,7 +191,7 @@ class FileAttributeValue extends AttributeValue {
             //$this->removeTempFile($tmp_file_id);
             $this->temp_to_delete[] = $tmp_file_id;
 
-            if (\Nette\Utils\Strings::startsWith("image/", $file_data["mime_type"])) {
+            if (\Nette\Utils\Strings::startsWith($file_data["mime_type"], "image/")) {
                 $finfo = $this->defaultFilePostProcess($final_file_path);
                 \API\Configurator::$connection->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $this->value);
             }
@@ -227,9 +227,14 @@ class FileAttributeValue extends AttributeValue {
         $finfo["supported_formats"] = [];
         $finfo["supported_width"] = [];
         $finfo["created_files"] = [ "all" => [], "formats" => [] ];
+        $finfo["info"] = [
+            "original_width" => $img_instance->getSize()->getWidth(),
+            "original_height" => $img_instance->getSize()->getHeight(),
+        ];
 
         //$cur_img = $img_instance->copy();
         $cur_img = $img_instance;
+
         // pokud je obrazek
         if (in_array(strtolower($info["extension"]), $this->image_extension)) {
             $target_extenstion_fl = [ "avif", "webp", $base_ext ];
@@ -352,6 +357,12 @@ class FileAttributeValue extends AttributeValue {
         else {
             return FunctionCore::getUpladedImageLatte($this->value, $alt, $config);
         }
+    }
+
+    public function delete(): void {
+        $this->setValue(null);
+        $this->is_edited = false;
+        $this->cleanAfterSave();
     }
 
 

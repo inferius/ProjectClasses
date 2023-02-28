@@ -6,7 +6,7 @@ class AttributeValueNotFound extends BaseException
     public $attrName;
     public $value;
     // Redefine the exception so message isn't optional
-    public function __construct($attrname,$value,$message, $code = 0, \Exception $previous = null) {
+    public function __construct($attrname,$value,$message = "", $code = 0, \Exception $previous = null) {
         // some code
         $this->attrName = $attrname;
         $this->value = $value;

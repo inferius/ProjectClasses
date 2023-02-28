@@ -2,7 +2,35 @@
 
 namespace API;
 
+use API\Remoting\DataReader\DataReaderItem;
+
 class DataReader {
+    /** @var DataReaderOrder $order */
+    private $order;
+    private $condition;
+    private $conditionParams;
+    private $langId;
+    private $defaultLangId;
+    /** @var string $classId */
+    private $classId;
+    /** @var \API\Model\ClassDescription $classInfo */
+    private $classInfo;
+    /** @var string[] $attributes */
+    private $attributes;
+
+    /** @var DataReaderItem $results */
+    private $results;
+
+    /** @var string[] $result_map */
+    private $result_map;
+
+    public static function createReader($className) {
+        $t = new self();
+        $t->classId = $className;
+        $t->classInfo = \API\Model\ClassDescription::get($className);
+        $t->order = new DataReaderOrder($t->classInfo);
+        return $t;
+    }
 
     private static function getClassDataInner($classId, $attributes, $page = 0, $limit = -1, $order = null, $condition = null, $filterCondition = null, $lang_id = null) {
         $class_info = \API\Model\ClassDescription::get($classId);

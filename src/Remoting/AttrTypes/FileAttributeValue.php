@@ -26,10 +26,10 @@ class FileAttributeValue extends AttributeValue {
     private $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
 
     private $convert_config = [
-        "jpeg_quality" => 90,
+        "jpeg_quality" => 85,
         "png_compression_level" => 3,
-        "webp_quality" => 90,
-        "avif_quality" => 90
+        "webp_quality" => 85,
+        "avif_quality" => 85
     ];
 
     /**

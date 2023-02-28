@@ -90,6 +90,22 @@ class ClassDescription/* implements ArrayAccess*/ {
         }
     }
 
+    /**
+     * @throws AttributeTypeNotFound
+     */
+    public function getFullAttribute(string $attrName) {
+        if (strpos($attrName, ".") !== false) {
+            $attrInfo = $this->getAttributeInfo($attrName);
+            $info = $attrInfo->getSpecification();
+            if ($info instanceof \API\Model\ClassDescription) {
+                $t = $attrInfo->flags()->isLocalizable() ? $info->table()->getTableLangName() : $info->table()->getTableName();
+                return "$t.{$attrInfo->getAlias()}";
+            }
+            else throw new \API\Exceptions\AttributeTypeNotFound("Attribute '{$attrName}' not found");
+        }
+        else return "{$this->table()->getTableName()}.$attrName";
+    }
+
     public static function get(string $text_id): ClassDescription {
         $cache_key = "ModelClassDescription[MODEL]:" . $text_id;
 

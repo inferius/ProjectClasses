@@ -5,7 +5,7 @@ class AttributeTypeNotFound extends BaseException
 {
     public $attrName;
     // Redefine the exception so message isn't optional
-    public function __construct($attrname,$message, $code = 0, \Exception $previous = null) {
+    public function __construct($attrname,$message = "", $code = 0, \Exception $previous = null) {
         // some code
         $this->attrName = $attrname;
         // make sure everything is assigned properly

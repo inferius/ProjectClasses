@@ -93,7 +93,7 @@ class ClassDescription/* implements ArrayAccess*/ {
     /**
      * @throws AttributeTypeNotFound
      */
-    public function getFullAttribute(string $attrName) {
+    public function getSQLAttrName(string $attrName) {
         if (strpos($attrName, ".") !== false) {
             $attrInfo = $this->getAttributeInfo($attrName);
             $info = $attrInfo->getSpecification();

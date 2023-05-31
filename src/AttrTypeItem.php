@@ -87,7 +87,7 @@ class AttrTypeItem {
     public function isEmpty($value):bool {
         $is_error = false;
         $is_empty = $this->runAttrMethodStatic($value, "is_empty_value_fnc",null, $is_error, $method_error);
-        if ($this->attr_context->getType() == "class") return $value == 1;
+        if (!empty($this->attr_context->getType) && $this->attr_context->getType() == "class") return $value == 1;
         if ($is_empty === null) {
             return empty($value) && !($value === 0 || $value === "0");
         }
@@ -96,7 +96,7 @@ class AttrTypeItem {
 
     private function runAttrMethodStatic($value, $method_name, $default_value = null, &$is_error = false, &$error_text = "") {
         if (!empty($this->attr_context->$method_name)) {
-            set_error_handler("warning_handler", E_ALL);
+            //set_error_handler("warning_handler", E_ALL);
             try {
                 return \API\UserMethod::run_code($this->attr_context->$method_name, [ "value" => $value, "context" => $this->context ]);
             }

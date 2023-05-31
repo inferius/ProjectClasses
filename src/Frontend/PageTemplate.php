@@ -275,28 +275,24 @@ class PageTemplate
 
 
         $php_path = $template_data["dirs"]["root"] . "/page.php";
-        //try {
-            if (is_file($php_path)) {
-                // Inicializace globalnich promennych
-                foreach (self::$global_vars as $key => $val) {
-                    if (is_callable($val)) {
-                        $$key = $val();
-                    }
-                    else{
-                        $$key = $val;
-                    }
+        if (is_file($php_path)) {
+            // Inicializace globalnich promennych
+            foreach (self::$global_vars as $key => $val) {
+                if (is_callable($val)) {
+                    $$key = $val();
                 }
-
-                include_once $php_path;
-                if (self::$useInTemplatePhpVars) {
-                    $vars = get_defined_vars();
-                    $template_params = array_merge($vars, $template_params);
+                else{
+                    $$key = $val;
                 }
             }
-        //}
-        //catch(\API\Frontend\StopDrawingExceptions $e) {
-        //    return;
-        //}
+
+            include_once $php_path;
+            if (self::$useInTemplatePhpVars) {
+                $vars = get_defined_vars();
+                $template_params = array_merge($vars, $template_params);
+            }
+        }
+
 
 
 
@@ -306,7 +302,9 @@ class PageTemplate
         self::load_js_internal($page_name, $async, $template_data);
 
         if (is_file($tpl_path)) {
-            if ($as_string) return Configurator::$presenter->renderToString($tpl_path, $template_params);
+            if ($as_string) {
+                return Configurator::$presenter->renderToString($tpl_path, $template_params);
+            }
 
             Configurator::$presenter->render($tpl_path, $template_params);
         }

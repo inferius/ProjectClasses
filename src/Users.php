@@ -240,7 +240,7 @@ class Users {
      * @throws UserNotFoundException
      * @throws ValidationException
      */
-    public static function createUser($name, $data, $groups): Users {
+    public static function createUser($data, $groups): Users {
         $connection = \API\Configurator::$connection;
 
         $save_attrs = [];
@@ -254,7 +254,7 @@ class Users {
                 ];
             }
             
-            $save_attrs[$key] = $attrType->beforeInsertValue($val);
+            $save_attrs[$key] = $attrType->beforeSave($val);
         }
 
         if (!empty($errors)) {

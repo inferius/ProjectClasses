@@ -7,14 +7,17 @@ use API\Model\IAttributeInfo;
 class ClassAttributeValue extends AttributeValue {
     /** @var BaseObject|null */
     protected $obj_value;
-    public function __construct($value, IAttributeInfo $attr_info) {
+    /** @var BaseObject */
+    private $parent_obj;
+    public function __construct($value, IAttributeInfo $attr_info, BaseObject $parent_obj) {
         if ($value == null) $value = 1;
+        $this->parent_obj = $parent_obj;
         parent::__construct($value, $attr_info);
     }
 
     public function getValue(): ?BaseObject {
         if (empty($this->obj_value)) {
-            $this->obj_value = $this->value == 1 ? null : new BaseObject($this->getDataSubType(), $this->value);
+            $this->obj_value = $this->value == 1 ? null : new BaseObject($this->getDataSubType(), $this->value, $this->parent_obj->getLanguage());
             if (!empty($this->obj_value)) {
                 $this->obj_value->setUseTransaction(false);
                 $this->obj_value->eventManager()->attach("change", function() { $this->_listenerChange(); });

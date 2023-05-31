@@ -5,11 +5,12 @@ namespace API;
 use API\Remoting\DataReader\DataReaderItem;
 
 class DataReader {
+    private static $supporsted_languages = [];
     /** @var DataReaderOrder $order */
     private $order;
+    /** @var DataReaderWhere $condition */
     private $condition;
-    private $conditionParams;
-    private $langId;
+    private $langsId;
     private $defaultLangId;
     /** @var string $classId */
     private $classId;
@@ -18,25 +19,66 @@ class DataReader {
     /** @var string[] $attributes */
     private $attributes;
 
-    /** @var DataReaderItem $results */
+    /** @var DataReaderItem[] $results */
     private $results;
 
     /** @var string[] $result_map */
     private $result_map;
 
-    public static function createReader($className) {
+    public static function create(string $className, $defaultLang = null) {
         $t = new self();
         $t->classId = $className;
         $t->classInfo = \API\Model\ClassDescription::get($className);
         $t->order = new DataReaderOrder($t->classInfo);
+        $t->condition = new DataReaderWhere();
+
+        if (empty($defaultLang)) $t->defaultLangId  = $defaultLang;
+
+        if (empty(self::$supporsted_languages)) {
+            $db = Configurator::$connection;
+            $sllist = $db->fetchAll("SELECT * FROM _front_language_list");
+            foreach ($sllist as $sl) {
+                if ($sl["def"] && empty($defaultLang)) $t->defaultLangId = $sl["id"];
+                self::$supporsted_languages[$sl["locale"]] = $sl["id"];
+            }
+        }
+
         return $t;
+    }
+
+    public function isLangaugeSupported($lang_id): bool {
+        if (intval($lang_id) == $lang_id) {
+            return in_array($lang_id, array_values(self::$supporsted_languages));
+        } else {
+            return array_key_exists($lang_id, self::$supporsted_languages);
+        }
+    }
+
+    public function getResult($lang_id = null) {
+        if (!empty($lang_id)) {
+            if (!$this->isLangaugeSupported($lang_id)) throw new \InvalidArgumentException("Language is not supported");
+            if (self::$defaultLangId == $lang_id) return $this->getResult();
+
+            if (!array_key_exists($lang_id, $this->result_map)) {
+                $this->result_map[$lang_id] = $this->readData($lang_id);
+            }
+
+            return $this->result_map[$lang_id];
+        }
+        else {
+            return $this->results;
+        }
+    }
+
+    private function readData($langId = null) {
+        if (!empty($langId)) $langId = self::$defaultLangId;
+
+        $table_name = $this->classInfo->table()->getTableName();
     }
 
     private static function getClassDataInner($classId, $attributes, $page = 0, $limit = -1, $order = null, $condition = null, $filterCondition = null, $lang_id = null) {
         $class_info = \API\Model\ClassDescription::get($classId);
         $table_name = $class_info->table()->getTableName();
-
-        $lang_id = $_SESSION[SESS_LANG]["id"];
 
         $q_builder = [
             "query" => null,

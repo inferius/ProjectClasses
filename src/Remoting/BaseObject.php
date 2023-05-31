@@ -116,7 +116,7 @@ class BaseObject {
         return $this->class_info;
     }
 
-    public function __construct(string $object_type, $id = null) {
+    public function __construct(string $object_type, $id = null, $lang_id = null) {
 
         $this->_eventManager = new \API\Event\EventManager();
 
@@ -130,7 +130,10 @@ class BaseObject {
         $this->objectName = $object_type;
         $this->id = $id;
 
-        $this->currentLanguage = \API\Configurator::$currentLangugageId;
+        if (empty($lang_id) && !empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$editLanguageId;
+        if (empty($lang_id) && empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$currentLanguageId;
+        else $this->currentLanguage = $lang_id;
+
 
         if (empty($id)) {
             $this->is_edited = true;
@@ -217,7 +220,7 @@ class BaseObject {
                 continue;
             }
 
-            $this->values[$key] = AttributeManager::get($data == null ? null : $data[$key], $data_values[$key], $cd);
+            $this->values[$key] = AttributeManager::get($data == null ? null : $data[$key], $data_values[$key], $cd, $this);
 
             $this->values[$key]->eventManager()->attach("change", function() {
                 $this->is_edited = true;

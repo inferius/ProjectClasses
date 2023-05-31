@@ -16,7 +16,13 @@ class Configurator {
      * ID aktuálního jazyka, načtě se ze session na webu
      * @var int
      */
-    public static $currentLangugageId = 2;
+    public static $currentLanguageId = 2;
+
+    /**
+     * ID aktuálního jazyka, načtě se ze session na webu
+     * @var int
+     */
+    public static $editLanguageId = null;
 
     /**
      * Prefix lokalizací, pokud se na stejném serveru nacházi více webu, aby se nehádali

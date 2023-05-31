@@ -47,7 +47,7 @@ class DataReaderOrder {
                 continue;
             }
 
-            $o_attrName = $this->classInfo->getFullAttribute($o_attrName);
+            $o_attrName = $this->classInfo->getSQLAttrName($o_attrName);
 
             $o_q .= $o_attrName;
             if (!empty($ord["direction"])) $o_q .= " {$ord["direction"]}";

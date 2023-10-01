@@ -87,7 +87,8 @@ class AttrTypeItem {
     public function isEmpty($value):bool {
         $is_error = false;
         $is_empty = $this->runAttrMethodStatic($value, "is_empty_value_fnc",null, $is_error, $method_error);
-        if (!empty($this->attr_context->getType) && $this->attr_context->getType() == "class") return $value == 1;
+        if (method_exists($this->attr_context, "getType") && $this->attr_context->getType() == "class") return $value == 1;
+
         if ($is_empty === null) {
             return empty($value) && !($value === 0 || $value === "0");
         }

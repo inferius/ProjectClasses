@@ -47,7 +47,7 @@ class Localization {
     }
 
     private static function getKey($key) {
-        return \API\Configurator::$localizationPrefix . ":" . \API\Configurator::$currentLanguageId . ":" . $key;
+        return \API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale . ":" . $key;
     }
 
     public static function getCacheValue($key) {
@@ -63,7 +63,7 @@ class Localization {
         if (!empty(\API\Configurator::$memcache)) {
             $expire = 24 * 60 * 60;
 
-            $loc = \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$currentLanguageId);
+            $loc = \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale);
             //dumpe($loc);
             if (!empty($loc)) {
                 self::$cahed = true;
@@ -71,7 +71,7 @@ class Localization {
             }
             self::$cahed = true;
 
-            \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$currentLanguageId, strtotime("now"), 0, $expire);
+            \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale, strtotime("now"), 0, $expire);
 
             $list = \API\Configurator::$connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
             foreach ($list as $data) {

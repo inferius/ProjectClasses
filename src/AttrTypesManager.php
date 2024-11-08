@@ -3,6 +3,16 @@
 namespace API;
 
 class AttrTypesManager {
+    private $properties = [];
+
+    public function __get($name) {
+        return $this->properties[$name] ?? null;
+    }
+
+    public function __set($name, $value) {
+        $this->properties[$name] = $value;
+    }
+
     function __construct(string $table_name = "model_attr_types") {
 
 

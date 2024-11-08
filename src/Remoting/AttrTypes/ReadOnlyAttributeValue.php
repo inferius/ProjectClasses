@@ -6,6 +6,10 @@ class ReadOnlyAttributeValue implements IAttributeValue {
     protected $value;
     protected $name;
     protected $type;
+    /**
+     * @var false
+     */
+    protected $is_edited;
 
     public function __construct($value, $name) {
         $this->value = $value;

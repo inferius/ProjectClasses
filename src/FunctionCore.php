@@ -33,10 +33,11 @@ class FunctionCore {
 
         $default_data = [
             "class_name" => null,
-            "width" => null
+            "width" => null,
+            "custom_sizes" => [],
         ];
 
-        list("class_name" => $class_names, "width" => $width) = $img_config + $default_data;
+        list("class_name" => $class_names, "width" => $width, "custom_sizes" => $custom_sizes) = $img_config + $default_data;
 
         $key = "uploaded_file_picture_html:$id";
 
@@ -62,17 +63,21 @@ class FunctionCore {
         $sizes = [];
         $max_w = min($swidth_list);
 
-        if (empty($width)) {
-            foreach ($swidth_list as $w) {
-                $w_m = intval($w * 1.55);
-                //$sizes[] = $w == $max_w ? "{$w}px" : "(min-width: {$w}px) {$w_m}px";
-                $sizes[] = "(min-width: {$w_m}px) {$w}px";
+        if (empty($custom_sizes)) {
+            if (empty($width)) {
+                foreach ($swidth_list as $w) {
+                    $w_m = intval($w * 0.8);
+                    //$sizes[] = $w == $max_w ? "{$w}px" : "(min-width: {$w}px) {$w_m}px";
+                    $sizes[] = "(min-width: {$w_m}px) {$w}px";
+                }
+                $sizes = array_reverse($sizes);
+                $sizes[] = "100vw";
+            } else {
+                $sizes[] = $width;
             }
-            $sizes = array_reverse($sizes);
-            $sizes[] = "100vw";
         }
         else {
-            $sizes[] = $width;
+            $sizes = $custom_sizes;
         }
 
         foreach ($finfo["created_files"]["formats"] as $key => $val) {

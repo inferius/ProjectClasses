@@ -14,10 +14,11 @@ class Users {
     protected $groups = [];
     protected $group_id_list = [];
     protected $group_text_id_list = [];
+    protected $name;
 
     private static $attributes_manager;
 
-    
+
     public function getId(): int { return $this->id; }
     public function getName(): string { return $this->user->name; }
     public function getCreated() { return $this->user->created; }
@@ -53,7 +54,7 @@ class Users {
 
         $this->id = $this->user->id;
         $this->name = $this->user->name;
-        
+
 
         if (!empty($this->opti_data)) $this->created = strtotime($this->opti_data["created"]);
 
@@ -73,7 +74,7 @@ class Users {
      * @throws UserNotFoundException
      */
     public static function loadByToken(string $user_logged_token) {
-        
+
 
         $user = \API\Configurator::$connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND expiration > now() AND valid_from < now()", $user_logged_token);
 
@@ -87,7 +88,7 @@ class Users {
      * @throws UserNotFoundException
      */
     private static function registerUserLogin($id, $permanent = false, $is_admin_login = false) {
-        
+
         $user = new Users($id);
 
         $token = \API\UserMethod::run_method("GenerateShortLoginToken", [ "user_value" => $user->getValue("email") ]);
@@ -144,7 +145,7 @@ class Users {
     }
 
     public static function logout() {
-        
+
 
         if (empty($_SESSION["login_data"]["is_logged"])) return;
 
@@ -185,8 +186,8 @@ class Users {
 
     public static function createHwInfo() {
         return -1;
-        // 
-        // 
+        //
+        //
 
         // require_once(\API\Configurator::$config["path"]["absolute"]["root"] . "/external/php/detect_hw/bw_detect.php");
         // require_once(\API\Configurator::$config["path"]["absolute"]["root"] . "/external/php/detect_hw/detect.php");
@@ -253,7 +254,7 @@ class Users {
                     "attrname" => $key
                 ];
             }
-            
+
             $save_attrs[$key] = $attrType->beforeSave($val);
         }
 
@@ -281,14 +282,16 @@ class Users {
      * @throws ValidationException
      */
     function update($attrname, $value) {
-        if (!Users::getAttributeManager()->get($attrname)->canSave($value)) throw new \API\Exceptions\ValidationException(Users::getAttributeManager()->get($attrname)->getLastError(), 0);
+        $attrType = Users::getAttributeManager()->get($attrname);
+
+        if (!$attrType->canSave($value)) throw new \API\Exceptions\ValidationException(Users::getAttributeManager()->get($attrname)->getLastError(), 0);
 
         $attrname = mb_strtolower($attrname, "utf8");
 
 
         \API\Configurator::$connection->query("UPDATE users_data SET", [
             "edited" => \API\Configurator::$connection::literal("now()"),
-            $attrname => $value
+            $attrname => $attrType->beforeSave($value)
         ], "WHERE id = ?", $this->id);
 
         //if ($value != $old_value) addToUserHistory($this->getId(), $attr_info["type_id"], $attr_info["value_id"], $value);

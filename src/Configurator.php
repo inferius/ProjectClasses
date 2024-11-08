@@ -2,11 +2,15 @@
 
 namespace API;
 
+use phpDocumentor\Reflection\Types\Callable_;
+
 class Configurator {
     /** @var \Nette\Database\Explorer $explorer */
     public static $explorer;
     /** @var \Nette\Database\Connection $connection */
     public static $connection;
+    /** @var Callable_\Nette\Database\Connection $connectionInformationSchema */
+    public static $connectionInformationSchema;
     /** @var \Memcache $memcache */
     public static $memcache;
     /** @var string $locale Obsahuje aktuální jazyk, který je použit pro předání */

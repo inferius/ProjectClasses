@@ -46,7 +46,7 @@ class DateTimeAttributeValue extends AttributeValue {
                 if ($formatter === null)
                     throw new InvalidConfigException(intl_get_error_message());
 
-                return $formatter->getPattern();
+                return $formatter->format($this->value);
             }
             else {
                 return date("j. n. Y H:i:s", strtotime($this->value));

@@ -9,7 +9,7 @@ class Globals
     {
         /*if(array_key_exists($_name, self::$vars))
         {
-            throw new Exception('globals::set("' . $_name . '") - Argument already exists and cannot be redefined!');
+            throw new \Exception('globals::set("' . $_name . '") - Argument already exists and cannot be redefined!');
         }
         else
         {*/
@@ -18,7 +18,7 @@ class Globals
     }
 
     // Get the global to use.
-    public static function get($_name)
+    public static function &get($_name)
     {
         if(array_key_exists($_name, self::$vars))
         {
@@ -27,6 +27,19 @@ class Globals
         else
         {
             //throw new Exception('globals::get("' . $_name . '") - Argument does not exist in globals!');
+            
         }
+    }
+
+    public static function get_all() {
+        return self::$vars;
+    }
+
+    public static function clear() {
+        self::$vars = array();
+    }
+
+    public static function is_set($_name) {
+        return array_key_exists($_name, self::$vars);
     }
 }

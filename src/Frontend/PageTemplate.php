@@ -125,7 +125,7 @@ class PageTemplate
     }
 
     private static function load_css_internal($page_name, $template_data = null, $async = false) {
-        
+
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
 
         $old_css_path = $template_data["dirs"]["root"] . "/page.css";
@@ -313,14 +313,14 @@ class PageTemplate
     }
 
     public static function createOptiScriptLoad() {
-        
+
 
         $file_name_css = self::$full_load_data["#file"]["css"];
         $file_name_js = self::$full_load_data["#file"]["js"];
 
         $f_css_hash = sprintf('%u', crc32($file_name_css)) . ".css";
         $f_js_hash = sprintf('%u', crc32($file_name_js)). ".js";
-    
+
         $path_dir = \API\Configurator::$config["path"]["absolute"]["temp"] . "/CSS_JS_Cache";
         $path_url = \API\Configurator::$config["path"]["relative"]["temp"] . "/CSS_JS_Cache";
 
@@ -330,9 +330,9 @@ class PageTemplate
         $css_data = "";
         $js_data = "";
         if (!file_exists($css_path) || \API\Configurator::$config["debug"]["status"]) {
-        
+
             foreach (self::$full_load_data as $key => $val) {
-                
+
                 if (!empty($val["css"]) && is_array($val["css"])){
                     foreach ($val["css"] as $css_item_file) {
                         $css_data .= file_get_contents($css_item_file);

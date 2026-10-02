@@ -237,7 +237,7 @@ final class PlainUrl {
 
     public function redirectWithoutSlashByToken(string $token) {
         $t = $this->get($token, true);
-        $url = self::addSlashEnd($this->original);       
+        $url = self::addSlashEnd($this->original);
 
         if (!$t->slashAtEnd()) {
             header("HTTP/1.1 301 Moved Permanently");
@@ -293,12 +293,39 @@ final class PlainUrl {
      * Provede přesměrování na stejnou adresu, ale s lomítkem na konci
      * @return void
      */
-    public function redirectWithoutSlash() {
+    public function redirectAddSlash() {
         $t = $this->last();
         $url = $this->appendQueryFragment(self::addSlashEnd($this->original_plain));
 
         if ($t != null) {
             if (!$t->slashAtEnd()) {
+                header("HTTP/1.1 301 Moved Permanently");
+                header("Location: " . $url);
+                exit();
+            }
+        }
+    }
+
+    /**
+     * Puvodni nazev metody redirectAddSlash(), ponechano kvuli zpetne kompatibilite
+     * @deprecated pouzijte redirectAddSlash()
+     * @return void
+     */
+    public function redirectWithoutSlash() {
+        $this->redirectAddSlash();
+    }
+
+    /**
+     * Provede přesměrování na stejnou adresu, ale odebere lomitko na konci
+     * @return void
+     */
+    public function redirectRemoveSlash() {
+        $t = $this->last();
+        $url = $this->appendQueryFragment($this->original_plain);
+        $url = rtrim($url, "/");
+
+        if ($t != null) {
+            if ($t->slashAtEnd()) {
                 header("HTTP/1.1 301 Moved Permanently");
                 header("Location: " . $url);
                 exit();
@@ -355,7 +382,7 @@ final class PlainUrl {
      * @return void
      */
     public static function redirectTo(string $url) {
-        $url = self::addSlashEnd($url);  
+        $url = self::addSlashEnd($url);
         header("Location: {$url}");
         exit();
     }
@@ -366,7 +393,7 @@ final class PlainUrl {
      * @return void
      */
     public static function permanentlyRedirectTo(string $url) {
-        $url = self::addSlashEnd($url);  
+        $url = self::addSlashEnd($url);
         header("HTTP/1.1 301 Moved Permanently");
         header("Location: {$url}");
         exit();
@@ -412,7 +439,7 @@ final class PlainUrl {
 
             if (count($grps) == 0) $no_group_token++;
 
-            
+
             $token = "";
         };
 
@@ -426,7 +453,7 @@ final class PlainUrl {
                 }
                 $last_backslash = true;
                 if ($token == "") continue;
-                
+
                 $iter(true);
                 continue;
             }

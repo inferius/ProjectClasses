@@ -51,6 +51,18 @@ class ClassDescription/* implements ArrayAccess*/ {
     }
 
     /**
+     * Pokud existuje atribut
+     * @param string $attrName
+     * @return bool
+     */
+    public function hasAttribute(string $attrName): bool {
+        if (empty($this->attributes[$attrName])) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Vrátí atribut
      * @param string $attrName
      * @return IAttributeInfo

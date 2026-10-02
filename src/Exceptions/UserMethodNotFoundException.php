@@ -5,7 +5,7 @@ namespace API\Exceptions {
 	{
 		public $methodName;
 		// Redefine the exception so message isn't optional
-		public function __construct($methodName,$message, $code = 0, Exception $previous = null) {
+		public function __construct($methodName,$message, $code = 0, \Exception $previous = null) {
 			// some code
 			$this->methodName = $methodName;
 			// make sure everything is assigned properly

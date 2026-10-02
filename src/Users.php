@@ -15,6 +15,8 @@ class Users {
     protected $group_id_list = [];
     protected $group_text_id_list = [];
     protected $name;
+    protected $opti_data;
+    protected $created;
 
     private static $attributes_manager;
 

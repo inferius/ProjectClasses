@@ -97,7 +97,7 @@ class SettingItem {
 
                     $formatter = new \IntlDateFormatter(\API\Configurator::$locale, $dateFormatter, $timeFormatter);
                     if ($formatter === null)
-                        throw new InvalidConfigException(intl_get_error_message());
+                        throw new \API\Exceptions\InvalidConfigException(intl_get_error_message());
 
                     return $formatter->getPattern();
                 }

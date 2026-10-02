@@ -137,7 +137,7 @@ class FunctionCore {
 
         $mime = self::getImageMime($ext);
 
-        if (empty($mime)) $mime = self::mime_content_type($path);
+        if (empty($mime) && function_exists("mime_content_type") && is_file($path)) $mime = \mime_content_type($path);
 
         if ($mime) {
             self::setMemCache($key, $mime);

@@ -1,7 +1,7 @@
 <?php
 
 namespace API\Exceptions {
-	class ItemExistException extends BaseException
+	class InvalidConfigException extends BaseException
 	{
 		// Redefine the exception so message isn't optional
 		public function __construct($message, $code = 0, \Exception $previous = null) {

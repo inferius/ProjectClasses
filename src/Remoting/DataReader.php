@@ -32,7 +32,7 @@ class DataReader {
         $t->order = new DataReaderOrder($t->classInfo);
         $t->condition = new DataReaderWhere();
 
-        if (empty($defaultLang)) $t->defaultLangId  = $defaultLang;
+        if (!empty($defaultLang)) $t->defaultLangId = $defaultLang;
 
         if (empty(self::$supporsted_languages)) {
             $db = Configurator::$connection;
@@ -57,7 +57,7 @@ class DataReader {
     public function getResult($lang_id = null) {
         if (!empty($lang_id)) {
             if (!$this->isLangaugeSupported($lang_id)) throw new \InvalidArgumentException("Language is not supported");
-            if (self::$defaultLangId == $lang_id) return $this->getResult();
+            if ($this->defaultLangId == $lang_id) return $this->getResult();
 
             if (!array_key_exists($lang_id, $this->result_map)) {
                 $this->result_map[$lang_id] = $this->readData($lang_id);
@@ -71,7 +71,7 @@ class DataReader {
     }
 
     private function readData($langId = null) {
-        if (!empty($langId)) $langId = self::$defaultLangId;
+        if (empty($langId)) $langId = $this->defaultLangId;
 
         $table_name = $this->classInfo->table()->getTableName();
     }

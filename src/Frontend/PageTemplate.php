@@ -124,6 +124,16 @@ class PageTemplate
         self::$full_load_data["#file"][$type] .= $page_name;
     }
 
+    /**
+     * Verze souboru pro URL (?v=cas zmeny), aby prohlizec po nasazeni nenacital starou verzi z cache
+     * @param string $absolute_path absolutni cesta k souboru
+     * @return string "?v=..." nebo prazdny retezec, kdyz soubor neexistuje
+     */
+    public static function assetVersion(string $absolute_path): string {
+        $mtime = @filemtime($absolute_path);
+        return $mtime ? "?v=" . $mtime : "";
+    }
+
     private static function load_css_internal($page_name, $template_data = null, $async = false) {
 
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
@@ -139,15 +149,16 @@ class PageTemplate
             $rel_attr = 'rel="preload" as="style" onload="this.rel=\'stylesheet\'"';
         }
 
-        $getFile = function ($fileName) use ($rel_attr) {
+        $getFile = function ($fileName, $absolutePath = null) use ($rel_attr) {
+            if ($absolutePath !== null) $fileName .= self::assetVersion($absolutePath);
             return  "<link href='$fileName' $rel_attr />";
         };
 
 
         if (is_file($css_path)) {
             if (!in_array($css_path, self::$css_files)) {
-                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/compile/page.min.css");
-                else self::$print_end_script[] = $getFile("{$template_data['dirs']['relative']['root']}/compile/page.css");
+                if (empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/compile/page.min.css", $css_min_path);
+                else self::$print_end_script[] = $getFile("{$template_data['dirs']['relative']['root']}/compile/page.css", $css_path);
 
 
                 self::$css_files[] = $css_path;
@@ -156,7 +167,7 @@ class PageTemplate
         }
         else if (is_file($old_css_path)) {
             if (!in_array($old_css_path, self::$css_files)) {
-                self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/page.css");
+                self::$print_end_script[]= $getFile("{$template_data['dirs']['relative']['root']}/page.css", $old_css_path);
 
                 self::$css_files[] = $old_css_path;
                 self::add_full_load_data($page_name, "css", $old_css_path);
@@ -178,9 +189,9 @@ class PageTemplate
         if (is_file($js_path) || is_file($ts_path)) {
             if (!in_array($js_path, self::$js_files)) {
                 if ($_SESSION["is_ie"]) {
-                    if (is_file($js_es5min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.min.js'></script>";
-                    else if (is_file($js_es5_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.js'></script>";
-                    else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js'></script>";
+                    if (is_file($js_es5min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.min.js" . self::assetVersion($js_es5min_path) . "'></script>";
+                    else if (is_file($js_es5_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es5.js" . self::assetVersion($js_es5_path) . "'></script>";
+                    else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js" . self::assetVersion($js_path) . "'></script>";
                     self::add_full_load_data($page_name, "js", $js_es5min_path);
                 }
                 else {
@@ -189,12 +200,12 @@ class PageTemplate
                     ];
                     if (!$async) $param_text["async"] = "";
                     if (!empty(\API\Configurator::$config["debug"]["status"])) {
-                        if (is_file($ts_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js' {$param_text["async"]}></script>";
-                        else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js' {$param_text["async"]}></script>";
+                        if (is_file($ts_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js" . self::assetVersion($js_es2017_path) . "' {$param_text["async"]}></script>";
+                        else self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/page.js" . self::assetVersion($js_path) . "' {$param_text["async"]}></script>";
                     }
                     else {
-                        if (is_file($js_es2017min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.min.js' {$param_text["async"]}></script>";
-                        else if (is_file($js_es2017_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js' {$param_text["async"]}></script>";
+                        if (is_file($js_es2017min_path) && empty(\API\Configurator::$config["debug"]["status"])) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.min.js" . self::assetVersion($js_es2017min_path) . "' {$param_text["async"]}></script>";
+                        else if (is_file($js_es2017_path)) self::$print_end_script[]= "<script src='{$template_data['dirs']['relative']['root']}/compile/page.es2017.js" . self::assetVersion($js_es2017_path) . "' {$param_text["async"]}></script>";
                     }
                     self::add_full_load_data($page_name, "js", $js_es2017min_path);
                 }
@@ -318,8 +329,17 @@ class PageTemplate
         $file_name_css = self::$full_load_data["#file"]["css"];
         $file_name_js = self::$full_load_data["#file"]["js"];
 
-        $f_css_hash = sprintf('%u', crc32($file_name_css)) . ".css";
-        $f_js_hash = sprintf('%u', crc32($file_name_js)). ".js";
+        // do nazvu i cas posledni zmeny souboru - po nasazeni novych verzi vznikne novy soubor
+        $mtimes = function ($list) {
+            $max = 0;
+            foreach (self::$full_load_data as $key => $val) {
+                if (empty($val[$list]) || !is_array($val[$list])) continue;
+                foreach ($val[$list] as $file) $max = max($max, (int)@filemtime($file));
+            }
+            return $max;
+        };
+        $f_css_hash = sprintf('%u', crc32($file_name_css . "|" . $mtimes("css"))) . ".css";
+        $f_js_hash = sprintf('%u', crc32($file_name_js . "|" . $mtimes("js"))). ".js";
 
         $path_dir = \API\Configurator::$config["path"]["absolute"]["temp"] . "/CSS_JS_Cache";
         $path_url = \API\Configurator::$config["path"]["relative"]["temp"] . "/CSS_JS_Cache";

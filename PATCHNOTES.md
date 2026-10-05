@@ -3,6 +3,11 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.3.1 - 2026-10-05
+
+- `Menu`: text zaznamu (`object`) a zdroje ze tridy (`source_class`) muze mit nahradni atributy - `config.label`
+  `"menu_text|name"` = prvni neprazdna hodnota (napr. text do menu, jinak nazev).
+
 ## v1.3.0 - 2026-10-05
 
 - Nove `API\Frontend\Menu` - menu webu z editoru menu v administraci (tabulky `_front_menu`, `_front_menu_item`,

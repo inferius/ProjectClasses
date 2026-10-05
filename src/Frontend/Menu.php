@@ -191,11 +191,11 @@ final class Menu {
                     if (!empty($cfg["no_url"])) $node["url"] = "";
                     break;
                 case "object":
-                    $labelAttr = self::attrName($cfg["label"] ?? "name");
+                    $labelAttrs = self::attrList($cfg["label"] ?? "name");
                     $urlAttr = self::attrName($cfg["url"] ?? "url.url");
-                    $obj = $this->rows((string)$it["ref"], array_filter([ $labelAttr, $urlAttr ]), "`_mct_{$it["ref"]}`.`id` = " . (int)$it["ref_id"], [], 1)[0] ?? null;
+                    $obj = $this->rows((string)$it["ref"], array_filter(array_merge($labelAttrs, [ $urlAttr ])), "`_mct_{$it["ref"]}`.`id` = " . (int)$it["ref_id"], [], 1)[0] ?? null;
                     if (!$obj) throw new \RuntimeException("záznam {$it["ref"]} #{$it["ref_id"]} nenalezen");
-                    $node["label"] = $label !== "" ? $label : trim(strip_tags((string)($obj[$labelAttr] ?? "")));
+                    $node["label"] = $label !== "" ? $label : self::firstValue($obj, $labelAttrs);
                     $node["url"] = $langUrl !== "" ? $this->linkUrl($langUrl) : $this->linkUrl((string)($obj[$urlAttr] ?? ""));
                     $node["row"] = $obj;
                     break;
@@ -275,11 +275,13 @@ final class Menu {
     private function classRows(array $cfg, array $rows): array {
         $class = (string)($cfg["class"] ?? "");
         $map = [];
-        foreach ([ "label", "url", "icon", "image", "key", "description" ] as $k) {
+        foreach ([ "url", "icon", "image", "key", "description" ] as $k) {
             $a = self::attrName($cfg[$k] ?? ($k === "url" ? "url.url" : ""));
             if ($a !== "") $map[$k] = $a;
         }
-        if (empty($map["label"])) throw new \RuntimeException("zdroj nemá atribut popisku");
+        // text muze mit nahradni atributy: "menu_text|name" = prvni neprazdny
+        $labelAttrs = self::attrList($cfg["label"] ?? "");
+        if (!$labelAttrs) throw new \RuntimeException("zdroj nemá atribut popisku");
 
         $parts = [];
         foreach ((array)($cfg["filters"] ?? []) as $f) {
@@ -295,11 +297,12 @@ final class Menu {
         }
         $limit = self::limit($cfg["limit"] ?? null);
 
-        $data = $this->rows($class, array_values($map), $parts ? implode(" AND ", $parts) : null, $order, $limit);
+        $data = $this->rows($class, array_merge($labelAttrs, array_values($map)), $parts ? implode(" AND ", $parts) : null, $order, $limit);
         $out = [];
         foreach ($data as $r) {
             $n = $r;
             foreach ($map as $k => $a) $n[$k] = $r[$a] ?? null;
+            $n["label"] = self::firstValue($r, $labelAttrs);
             if (isset($map["image"])) $n["image"] = ($this->ctx["file_url"])($r[$map["image"]] ?? null) ?: null;
             $out[] = $n;
         }
@@ -401,6 +404,20 @@ final class Menu {
     private static function attrName($a): string {
         $a = trim((string)$a);
         return preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $a) ? $a : "";
+    }
+
+    /** "menu_text|name" -> [menu_text, name] (jen platne nazvy atributu). */
+    private static function attrList($spec): array {
+        return array_values(array_filter(array_map([ self::class, "attrName" ], explode("|", (string)$spec))));
+    }
+
+    /** Prvni neprazdna hodnota z atributu (text bez HTML). */
+    private static function firstValue(array $row, array $attrs): string {
+        foreach ($attrs as $a) {
+            $v = trim(strip_tags((string)(is_array($row[$a] ?? null) ? "" : ($row[$a] ?? ""))));
+            if ($v !== "") return $v;
+        }
+        return "";
     }
 
     private static function limit($v): int {

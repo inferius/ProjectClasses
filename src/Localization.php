@@ -37,13 +37,21 @@ class Localization {
 
         self::$cahed = true;
         
-        $list = \API\Configurator::$connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
+        $list = \API\Configurator::$connection->query("SELECT fsld.*, fs.text_id FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
         foreach ($list as $data) {
-            $text = $data["short_text"];
-            if (!empty($data["content"])) $text = $data["content"];
+            $text = self::rowText($data);
             self::$cache[self::getKey($data["text_id"])] = $text;
         }
         //dump(self::$cache);
+    }
+
+    /**
+     * Text prekladu z radku _mct_translate_lang_data. Preklad je v jednom sloupci content (MEDIUMTEXT);
+     * short_text je stary sloupec pred migraci (2026-10-05_02 v adminu) - pouzije se, kdyz content chybi.
+     */
+    private static function rowText($data) {
+        if (isset($data["content"]) && $data["content"] !== "") return $data["content"];
+        return $data["short_text"] ?? null;
     }
 
     private static function getKey($key) {
@@ -73,10 +81,9 @@ class Localization {
 
             \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale, strtotime("now"), 0, $expire);
 
-            $list = \API\Configurator::$connection->query("SELECT fsld.content, fsld.short_text, fs.text_id, fs.id AS value FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
+            $list = \API\Configurator::$connection->query("SELECT fsld.*, fs.text_id FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
             foreach ($list as $data) {
-                $text = $data["short_text"];
-                if (!empty($data["content"])) $text = $data["content"];
+                $text = self::rowText($data);
                 \API\Configurator::$memcache->set(self::getKey($data["text_id"]), $text, 0, $expire);
             }
             //var_dump($memcache->get("localizations"));
@@ -90,7 +97,7 @@ class Localization {
     public static function clear() {
         self::$cahed = false;
         self::$cache = [];
-        \API\Configurator::$memcache->flush();
+        if (!empty(\API\Configurator::$memcache)) \API\Configurator::$memcache->flush();
     }
 }
 

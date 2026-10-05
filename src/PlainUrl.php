@@ -393,7 +393,13 @@ final class PlainUrl {
      * @return void
      */
     public static function permanentlyRedirectTo(string $url) {
-        $url = self::addSlashEnd($url);
+        // lomitko patri na konec cesty - pred ?query a #fragment (jinak /stranka?a=1 -> /stranka?a=1/)
+        $suffix = "";
+        if (preg_match('/^([^?#]*)([?#].*)$/s', $url, $m)) {
+            $url = $m[1];
+            $suffix = $m[2];
+        }
+        $url = self::addSlashEnd($url) . $suffix;
         header("HTTP/1.1 301 Moved Permanently");
         header("Location: {$url}");
         exit();

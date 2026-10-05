@@ -3,6 +3,11 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.4.1 - 2026-10-05
+
+- `PlainUrl::permanentlyRedirectTo()`: lomitko na konec cesty se pridava pred `?query` / `#fragment`
+  (drive `/stranka?a=1` -> `/stranka?a=1/`, parametr pak nesl lomitko).
+
 ## v1.4.0 - 2026-10-05
 
 - `Menu`: upravy jednotlivych zaznamu zdroje - `config.overrides[id zaznamu]`:

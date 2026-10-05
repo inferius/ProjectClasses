@@ -3,6 +3,18 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.4.0 - 2026-10-05
+
+- `Menu`: upravy jednotlivych zaznamu zdroje - `config.overrides[id zaznamu]`:
+  `hidden` (skryt), `labels[lang_id]` (vlastni text v jazyce), `ord` (poradi; zaznamy zdroje maji 10, 20, 30...),
+  `parent` (id jine polozky menu - zaznam se zobrazi na konci jejich podpolozek misto ve zdroji).
+  Prazdna polozka, do ktere se zaznamy presouvaji, se zobrazi jen kdyz neco obsahuje.
+- `Menu`: seskupeni zaznamu zdroje podle atributu - `config.group_by`: `attr` (hodnota skupiny), `class`
+  (trida skupin, nadpis ze zaznamu s id = hodnota), `label` (atribut nadpisu, lze `a|b`), `key`, `order`
+  (razeni skupin podle atributu tridy, jinak podle poradi zaznamu). Skupiny jsou uzly typu `group`.
+- `Menu`: `ctx["trace"]` + `trace()` - zaznamy kazdeho zdroje (vcetne skrytych a presunutych) pro editor.
+- Uzly maji navic `ord` a u generovanych skupin `generated`.
+
 ## v1.3.1 - 2026-10-05
 
 - `Menu`: text zaznamu (`object`) a zdroje ze tridy (`source_class`) muze mit nahradni atributy - `config.label`

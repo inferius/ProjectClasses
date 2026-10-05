@@ -52,6 +52,11 @@ final class Menu {
     private $errors = [];
     private $nodes = 0;
     private $isMaria = null;
+    /** id cilove polozky => zaznamy zdroju presunute pod ni (override parent) */
+    private $moved = [];
+    /** id polozek, pod ktere maji prijit presunute zaznamy */
+    private $targets = [];
+    private $trace = [];
 
     /** Strom menu pro jazyk z kontextu (z cache, kdyz je memcache). Neexistujici menu = []. */
     public static function get(string $menu, array $ctx = []): array {
@@ -71,6 +76,7 @@ final class Menu {
             "cache_ttl" => 86400,
             "items" => null,
             "debug" => false,
+            "trace" => false,
         ];
     }
 
@@ -103,9 +109,108 @@ final class Menu {
         }
         unset($list);
 
-        $tree = $this->children(0, $byParent, [], 0);
+        // polozky, pod ktere editor presunul zaznamy ze zdroju
+        $this->targets = [];
+        foreach ($items as $it) {
+            foreach ((array)(self::decodeConfig($it["config"] ?? null)["overrides"] ?? []) as $o) {
+                if (!empty($o["parent"])) $this->targets[(int)$o["parent"]] = true;
+            }
+        }
+        $this->moved = [];
+
+        $tree = $this->attachMoved($this->children(0, $byParent, [], 0));
         if ($cache) $cache->set($key, $tree, 0, (int)$this->ctx["cache_ttl"]);
         return $tree;
+    }
+
+    /** Zaznamy zdroju z posledniho build() pro editor (jen s ctx trace): [id zdroje => [{key, label, context, hidden, ord, parent, label_override}]]. */
+    public function trace(): array {
+        return $this->trace;
+    }
+
+    /** Presunute zaznamy zdroju (override parent) na konec podrizenych cilove polozky; prazdne cile pryc. */
+    private function attachMoved(array $nodes): array {
+        $out = [];
+        foreach ($nodes as $n) {
+            $n["children"] = $this->attachMoved($n["children"]);
+            if (!in_array($n["type"], self::SOURCE_TYPES, true) && empty($n["generated"]) && !empty($this->moved[$n["id"]])) {
+                $moved = $this->moved[$n["id"]];
+                self::sortByOrd($moved);
+                $n["children"] = array_merge($n["children"], $moved);
+            }
+            if ($n["label"] === "" && $n["type"] !== "block" && empty($n["children"]) && isset($this->targets[$n["id"]])) continue;
+            $out[] = $n;
+        }
+        return $out;
+    }
+
+    private static function sortByOrd(array &$nodes): void {
+        $i = 0;
+        foreach ($nodes as &$n) $n["_i"] = $i++;
+        unset($n);
+        usort($nodes, fn($a, $b) => [ (int)($a["ord"] ?? 0), $a["_i"] ] <=> [ (int)($b["ord"] ?? 0), $b["_i"] ]);
+        foreach ($nodes as &$n) unset($n["_i"]);
+        unset($n);
+    }
+
+    /**
+     * Seskupeni zaznamu zdroje podle atributu (config.group_by):
+     *   attr   atribut / sloupec s hodnotou skupiny (napr. category_id)
+     *   class  (volitelne) trida skupin - nadpis z jejiho zaznamu s id = hodnota; bez tridy je nadpisem hodnota
+     *   label  atribut nadpisu ve tride skupin (lze s nahradnim "menu_text|name"), vychozi name
+     *   key    (volitelne) atribut klice skupiny (napr. text_id), jinak hodnota
+     *   order  (volitelne) atribut tridy skupin pro razeni skupin, jinak poradi prvniho zaznamu
+     * Zaznamy bez hodnoty jdou do skupiny bez nadpisu.
+     */
+    private function groupNodes(array $it, array $cfg, array $nodes): array {
+        $gb = (array)$cfg["group_by"];
+        $attr = self::attrName($gb["attr"] ?? "");
+        if ($attr === "") return $nodes;
+        $groups = [];
+        foreach ($nodes as $n) {
+            $v = $n["row"][$attr] ?? null;
+            $v = is_scalar($v) ? (string)$v : "";
+            $groups[$v][] = $n;
+        }
+
+        $info = [];
+        $class = (string)($gb["class"] ?? "");
+        $ids = array_values(array_filter(array_map("intval", array_keys($groups))));
+        if ($class !== "" && $ids) {
+            $labelAttrs = self::attrList($gb["label"] ?? "name") ?: [ "name" ];
+            $keyAttr = self::attrName($gb["key"] ?? "");
+            $orderAttr = self::attrName($gb["order"] ?? "");
+            foreach ($this->rows($class, array_filter(array_merge($labelAttrs, [ $keyAttr, $orderAttr ])), "`_mct_{$class}`.`id` IN (" . implode(",", $ids) . ")", [], count($ids)) as $g) {
+                $info[(string)$g["id"]] = [
+                    "label" => self::firstValue($g, $labelAttrs),
+                    "key" => $keyAttr !== "" ? (string)($g[$keyAttr] ?? "") : "",
+                    "order" => $orderAttr !== "" ? $g[$orderAttr] ?? null : null,
+                    "row" => $g,
+                ];
+            }
+        }
+
+        $out = [];
+        $pos = 0;
+        foreach ($groups as $value => $children) {
+            $node = $this->node($it, $cfg);
+            $node["type"] = "group";
+            $node["generated"] = true;
+            $node["label"] = $value === "" ? "" : ($class !== "" ? (string)($info[$value]["label"] ?? "") : (string)$value);
+            $node["key"] = $class !== "" && ($info[$value]["key"] ?? "") !== "" ? $info[$value]["key"] : (string)$value;
+            $node["row"] = $info[$value]["row"] ?? [ $attr => $value ];
+            $node["ord"] = $pos++;
+            $node["sort"] = $info[$value]["order"] ?? null;
+            $node["children"] = $children;
+            $out[] = $node;
+        }
+        if (!empty($gb["order"])) {
+            usort($out, fn($a, $b) => [ $a["sort"] === null ? 1 : 0, is_numeric($a["sort"]) ? (float)$a["sort"] : (string)$a["sort"], $a["ord"] ]
+                <=> [ $b["sort"] === null ? 1 : 0, is_numeric($b["sort"]) ? (float)$b["sort"] : (string)$b["sort"], $b["ord"] ]);
+        }
+        foreach ($out as &$g) unset($g["sort"]);
+        unset($g);
+        return $out;
     }
 
     /** Polozky menu s texty jazyka (format pro build i nahled adminu). */
@@ -161,20 +266,41 @@ final class Menu {
         try {
             if ($type === "source_class" || $type === "source_sql") {
                 $data = $type === "source_class" ? $this->classRows($cfg, $rows) : $this->sqlRows($cfg, $rows);
+                $overrides = (array)($cfg["overrides"] ?? []);
+                $lang = (string)(int)$this->ctx["lang_id"];
                 $nodes = [];
-                foreach ($data as $r) {
+                foreach (array_values($data) as $i => $r) {
+                    // upravy zaznamu v editoru (klic = id radku): skryt, text v jazyce, poradi, presun pod jinou polozku
+                    $rowKey = (string)($r["id"] ?? ($r["key"] ?? ""));
+                    $o = $rowKey !== "" ? (array)($overrides[$rowKey] ?? []) : [];
+                    $label = trim(strip_tags((string)($r["label"] ?? "")));
+                    $labelOv = trim((string)(((array)($o["labels"] ?? []))[$lang] ?? ""));
+                    $ord = isset($o["ord"]) && $o["ord"] !== "" && $o["ord"] !== null ? (int)$o["ord"] : ($i + 1) * 10;
+                    if ($this->ctx["trace"]) {
+                        $this->trace[$id][] = [ "key" => $rowKey, "label" => $label, "context" => trim(strip_tags((string)($row["label"] ?? ""))),
+                            "hidden" => !empty($o["hidden"]), "ord" => $ord, "parent" => $o["parent"] ?? null, "label_override" => $labelOv ];
+                    }
+                    if (!empty($o["hidden"])) continue;
+
                     $node = $this->node($it, $cfg);
-                    $node["label"] = trim(strip_tags((string)($r["label"] ?? "")));
+                    $node["label"] = $labelOv !== "" ? $labelOv : $label;
                     $node["url"] = $this->linkUrl((string)($r["url"] ?? ""));
                     $node["icon"] = (string)($r["icon"] ?? "") ?: $node["icon"];
                     $node["image"] = $r["image"] ?? null;
                     $node["description"] = (string)($r["description"] ?? "");
                     $node["key"] = (string)($r["key"] ?? ($r["id"] ?? ""));
                     $node["row"] = $r;
+                    $node["ord"] = $ord;
                     $node["children"] = $this->children($id, $byParent, array_merge([$r], $rows), $depth + 1);
                     if ($node["label"] === "" && empty($node["children"])) continue;
+                    if (!empty($o["parent"])) {
+                        $this->moved[(int)$o["parent"]][] = $node;
+                        continue;
+                    }
                     $nodes[] = $node;
                 }
+                self::sortByOrd($nodes);
+                if (!empty($cfg["group_by"]["attr"])) $nodes = $this->groupNodes($it, $cfg, $nodes);
                 return $nodes;
             }
 
@@ -216,7 +342,8 @@ final class Menu {
             }
 
             $node["children"] = $this->children($id, $byParent, $rows, $depth + 1);
-            if ($node["label"] === "" && $type !== "block" && empty($node["children"])) return [];
+            // prazdna polozka zustane, kdyz do ni maji prijit zaznamy presunute ze zdroje (attachMoved)
+            if ($node["label"] === "" && $type !== "block" && empty($node["children"]) && !isset($this->targets[$id])) return [];
             return [ $node ];
         }
         catch (\Throwable $e) {
@@ -297,7 +424,8 @@ final class Menu {
         }
         $limit = self::limit($cfg["limit"] ?? null);
 
-        $data = $this->rows($class, array_merge($labelAttrs, array_values($map)), $parts ? implode(" AND ", $parts) : null, $order, $limit);
+        $groupAttr = self::attrName($cfg["group_by"]["attr"] ?? "");
+        $data = $this->rows($class, array_filter(array_merge($labelAttrs, array_values($map), [ $groupAttr ])), $parts ? implode(" AND ", $parts) : null, $order, $limit);
         $out = [];
         foreach ($data as $r) {
             $n = $r;

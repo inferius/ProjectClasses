@@ -3,6 +3,10 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.4.2 - 2026-10-06
+
+- `Users::getName()`: uzivatel bez vyplneneho jmena vraci prazdny retezec (drive TypeError - navratovy typ string, v DB NULL).
+
 ## v1.4.1 - 2026-10-05
 
 - `PlainUrl::permanentlyRedirectTo()`: lomitko na konec cesty se pridava pred `?query` / `#fragment`

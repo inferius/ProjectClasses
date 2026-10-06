@@ -22,7 +22,7 @@ class Users {
 
 
     public function getId(): int { return $this->id; }
-    public function getName(): string { return $this->user->name; }
+    public function getName(): string { return (string)($this->user->name ?? ""); }
     public function getCreated() { return $this->user->created; }
     public function getGroups() { return empty($this->groups) ? null : array_keys($this->groups); }
 

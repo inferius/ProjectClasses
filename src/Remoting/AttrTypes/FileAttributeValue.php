@@ -23,8 +23,8 @@ class FileAttributeValue extends AttributeValue {
     private $final_to_delete = null;
 
     // rastrove obrazky (zmensovani a srcset pres Imagine) - SVG je vektor, GD/Imagick ho neotevre
-    private $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
-    private $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
+    private static $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
+    private static $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
 
     /**
      * Vychozi kvalita variant obrazku (srcset). Projekt muze prepsat v config.inc.php:
@@ -65,8 +65,7 @@ class FileAttributeValue extends AttributeValue {
             if ($variant && is_file($variant)) @unlink($variant);
         }
 
-        $self = (new \ReflectionClass(static::class))->newInstanceWithoutConstructor();
-        $finfo = $self->defaultFilePostProcess($path);
+        $finfo = self::defaultFilePostProcess($path);
         $conn->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $fileId);
         return $finfo;
     }
@@ -231,17 +230,17 @@ class FileAttributeValue extends AttributeValue {
             $this->temp_to_delete[] = $tmp_file_id;
 
             if (\Nette\Utils\Strings::startsWith($file_data["mime_type"], "image/")) {
-                $finfo = $this->defaultFilePostProcess($final_file_path);
+                $finfo = self::defaultFilePostProcess($final_file_path);
                 \API\Configurator::$connection->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $this->value);
             }
         }
     }
 
-    private function defaultFilePostProcess($path) {
+    private static function defaultFilePostProcess($path) {
         $info = pathinfo($path);
         //$mime_type = mime_content_type($path);
 
-        if (!in_array(strtolower($info["extension"] ?? ""), $this->image_extension)) return null;
+        if (!in_array(strtolower($info["extension"] ?? ""), self::$image_extension)) return null;
 
         //function_exists("imageavif"),
         //function_exists("imagewebp"),
@@ -252,7 +251,7 @@ class FileAttributeValue extends AttributeValue {
         $di = FunctionCore::getImageDriverInfo();
         $img_instance = $img->open($path);
 
-        $img_sizes = $this->image_size;
+        $img_sizes = self::$image_size;
         arsort($img_sizes, SORT_NUMERIC);
         $target_extenstion_all = [ "jpg" => [ "jpg", "jfif", "jpeg", "jpe", "jif", "jfi"], "png", "avif", "webp" ];
 
@@ -275,7 +274,7 @@ class FileAttributeValue extends AttributeValue {
         $cur_img = $img_instance;
 
         // pokud je obrazek
-        if (in_array(strtolower($info["extension"]), $this->image_extension)) {
+        if (in_array(strtolower($info["extension"]), self::$image_extension)) {
             $target_extenstion_fl = [ "avif", "webp", $base_ext ];
             $src_set_data = "srcset";
             $target_path_relative = $relative_dir . "/" . $src_set_data;

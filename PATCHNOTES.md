@@ -3,6 +3,13 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.7.1 - 2026-10-23
+
+- `FileAttributeValue::regenerateImageVariants()` bez fatalni chyby pri ukonceni (objekt bez konstruktoru padal
+  v destruktoru) - tvorba variant obrazku je ted staticka (`defaultFilePostProcess`, `$image_extension`, `$image_size`).
+
+Projekt: jen `composer update michalosoft/project-classes`.
+
 ## v1.7.0 - 2026-10-23
 
 - Kvalita variant obrazku (srcset) jde nastavit v config.inc.php projektu:

@@ -22,7 +22,8 @@ class FileAttributeValue extends AttributeValue {
     private $temp_to_delete = [];
     private $final_to_delete = null;
 
-    private $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "svg", "png", "gif", "webp", "avif" ];
+    // rastrove obrazky (zmensovani a srcset pres Imagine) - SVG je vektor, GD/Imagick ho neotevre
+    private $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
     private $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
 
     private $convert_config = [
@@ -202,7 +203,7 @@ class FileAttributeValue extends AttributeValue {
         $info = pathinfo($path);
         //$mime_type = mime_content_type($path);
 
-        if (!in_array($info["extension"], $this->image_extension)) return null;
+        if (!in_array(strtolower($info["extension"] ?? ""), $this->image_extension)) return null;
 
         //function_exists("imageavif"),
         //function_exists("imagewebp"),

@@ -3,6 +3,20 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.4.3 - 2026-10-23
+
+- `FileAttributeValue`: SVG uz neni mezi rastrovymi obrazky - ulozeni objektu s SVG v souborovem atributu
+  (i nahrani SVG v administraci) padalo na "Unable to open image" (zmensovani pres Imagine/GD). SVG nema srcset.
+  Pripona se porovnava bez ohledu na velikost pismen (`.JPG`).
+- `API\getClassDescription()` (zastarala, pouziva ji `getFullDataFromClass`): trida s vazbou sama na sebe
+  (napr. `crm_pages.parent_page`) nebo cyklus A -> B -> A se zanorovala do nekonecna - na webu napr. chybejici
+  polozka menu typu "object". Vnoreny popis uz rozpracovane tridy je zkraceny (bez atributu).
+- `BaseObject`: pri nastavenem `Configurator::$editLanguageId` a bez zadaneho jazyka konstruktor prepsal jazyk
+  na null - vnoreny objekt (napr. `setValue("url.url", ...)`) pak spadl na "Column lang_id cannot be null".
+  Poradi je: zadany jazyk, jazyk editace, aktualni jazyk.
+
+Projekt: jen `composer update michalosoft/project-classes`.
+
 ## v1.4.2 - 2026-10-06
 
 - `Users::getName()`: uzivatel bez vyplneneho jmena vraci prazdny retezec (drive TypeError - navratovy typ string, v DB NULL).

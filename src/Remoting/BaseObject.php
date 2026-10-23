@@ -130,9 +130,10 @@ class BaseObject {
         $this->objectName = $object_type;
         $this->id = $id;
 
-        if (empty($lang_id) && !empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$editLanguageId;
-        if (empty($lang_id) && empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$currentLanguageId;
-        else $this->currentLanguage = $lang_id;
+        // jazyk: zadany, jinak jazyk editace, jinak aktualni jazyk
+        if (!empty($lang_id)) $this->currentLanguage = $lang_id;
+        else if (!empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$editLanguageId;
+        else $this->currentLanguage = \API\Configurator::$currentLanguageId;
 
 
         if (empty($id)) {

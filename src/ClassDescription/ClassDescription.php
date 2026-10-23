@@ -14,14 +14,29 @@ class ClassDescription {
 
 
 function getClassDescription($class_text_id) {
+    // tridy, ktere se prave popisuji (vazba sama na sebe nebo cyklus A -> B -> A by se zanorovala do nekonecna)
+    static $building = [];
+    // tridy, v jejichz popisu je zkraceny popis z cyklu - neukladaji se do mezipameti (jina hloubka nez primy dotaz)
+    static $cut = [];
+
     $cache_key = "ModelClassDescription:" . $class_text_id;
 
     if (!empty(\API\Configurator::$memcache)) {
         $r = \API\Configurator::$memcache->get($cache_key);
         if (!empty($r)) return $r;
     }
-    //var_dump($class_text_id);
 
+    if (isset($building[$class_text_id])) {
+        foreach (array_keys($building) as $b) $cut[$b] = true;
+        $class_info = \API\Configurator::$connection->fetch("SELECT * FROM model_classes WHERE text_id = ?", $class_text_id);
+        return [
+            "name" => $class_info["class_name"] ?? null,
+            "text_id" => $class_text_id,
+            "table" => $class_info["table_name"] ?? null,
+            "attributes" => []
+        ];
+    }
+    $building[$class_text_id] = true;
 
     $class_info = \API\Configurator::$connection->fetch("SELECT * FROM model_classes WHERE text_id = ?", $class_text_id);
     //$attrs = \API\Configurator::$connection->query("SELECT mat.*, mca.attr_alias FROM model_attr_types AS mat INNER JOIN model_classes_attrs AS mca ON mat.text_id = mca.a_txt_id WHERE mca.c_txt_id = ?", $class_text_id);
@@ -54,7 +69,11 @@ function getClassDescription($class_text_id) {
         }
     }
 
-    if (!empty(\API\Configurator::$memcache)) {
+    unset($building[$class_text_id]);
+    $cacheable = empty($cut[$class_text_id]) || empty($building);
+    unset($cut[$class_text_id]);
+
+    if ($cacheable && !empty(\API\Configurator::$memcache)) {
         \API\Configurator::$memcache->set($cache_key, $data);
     }
 

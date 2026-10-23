@@ -3,6 +3,14 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.4.4 - 2026-10-23
+
+- `Globals::get()`: chybejici klic vraci null bez Notice "Only variable references should be returned by reference"
+  (funkce vraci referenci, drive vracela vyraz). Klic se nezaklada - `is_set()` dal vraci false; zapis pres
+  referenci (`Globals::get("head_data")[] = ...`) u existujiciho klice funguje jako drive.
+
+Projekt: jen `composer update michalosoft/project-classes`. Obchazeni pres `Globals::get_all()[...] ?? null` uz neni potreba.
+
 ## v1.4.3 - 2026-10-23
 
 - `FileAttributeValue`: SVG uz neni mezi rastrovymi obrazky - ulozeni objektu s SVG v souborovem atributu

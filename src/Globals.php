@@ -24,11 +24,10 @@ class Globals
         {
             return self::$vars[$_name];
         }
-        else
-        {
-            //throw new Exception('globals::get("' . $_name . '") - Argument does not exist in globals!');
-            
-        }
+        // chybejici klic: null (reference na promennou - funkce vraci referenci, vyraz by hodil Notice);
+        // klic se nezaklada, is_set() dal vraci false
+        $missing = null;
+        return $missing;
     }
 
     public static function get_all() {

@@ -3,6 +3,14 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.6.0 - 2026-10-23
+
+- `PageTemplate::addTemplateRoot($absolute, $relative, $priority = false)`: s `$priority = true` ma sablona z korene
+  prednost i pred hlavnim adresarem (vrstva projektu nad jadrem v EasyAdminu - `project/templates`). Bez parametru
+  beze zmeny (moduly - jen sablony, ktere jadro nema).
+
+Projekt: jen `composer update michalosoft/project-classes`.
+
 ## v1.5.0 - 2026-10-23
 
 - `PageTemplate::addTemplateRoot($absolute, $relative)`: dalsi koren sablon - sablona, ktera v hlavnim adresari

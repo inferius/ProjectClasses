@@ -93,16 +93,18 @@ class PageTemplate
 
     /**
      * Prida dalsi koren sablon - sablona, ktera v hlavnim adresari (configure) neexistuje, se hleda v nem
-     * (v poradi pridani). Hlavni adresar ma vzdy prednost, dalsi koren tedy sablony jadra neprepise.
+     * (v poradi pridani). Hlavni adresar ma prednost, pokud koren nema $priority (pak sablonu jadra prepise).
      * Napr. modul administrace se strankami v modules/<id>/templates/pages/<stranka>.
      * @param string $absolute Absolutni cesta k adresari (obsahuje napr. pages/...)
      * @param string $relative Adresa adresare pro prohlizec (styly a skripty sablon)
+     * @param bool $priority true = sablona z tohoto korene ma prednost i pred hlavnim adresarem (vrstva projektu nad jadrem)
      */
-    public static function addTemplateRoot(string $absolute, string $relative): void {
+    public static function addTemplateRoot(string $absolute, string $relative, bool $priority = false): void {
+        $absolute = rtrim($absolute, "/\\");
         foreach (self::$template_roots as $r) {
             if ($r["root"] === $absolute) return;
         }
-        self::$template_roots[] = [ "root" => rtrim($absolute, "/\\"), "relative" => rtrim($relative, "/") ];
+        self::$template_roots[] = [ "root" => $absolute, "relative" => rtrim($relative, "/"), "priority" => $priority ];
     }
 
     /**
@@ -235,13 +237,25 @@ class PageTemplate
     private static function getTemplateData($page_name) {
         $root = self::$template_configuration["dirs"]["root"];
         $relative = self::$template_configuration["dirs"]["relative"]["root"];
-        // sablona mimo hlavni adresar - dalsi koreny (addTemplateRoot)
-        if (!empty(self::$template_roots) && !is_dir("{$root}/{$page_name}")) {
+        // dalsi koreny (addTemplateRoot): s prednosti pred hlavnim adresarem (napr. sablony projektu nad jadrem),
+        // ostatni jen kdyz sablona v hlavnim adresari neni (moduly)
+        if (!empty(self::$template_roots)) {
+            $found = false;
             foreach (self::$template_roots as $r) {
-                if (is_dir("{$r["root"]}/{$page_name}")) {
+                if (!empty($r["priority"]) && is_dir("{$r["root"]}/{$page_name}")) {
                     $root = $r["root"];
                     $relative = $r["relative"];
+                    $found = true;
                     break;
+                }
+            }
+            if (!$found && !is_dir("{$root}/{$page_name}")) {
+                foreach (self::$template_roots as $r) {
+                    if (empty($r["priority"]) && is_dir("{$r["root"]}/{$page_name}")) {
+                        $root = $r["root"];
+                        $relative = $r["relative"];
+                        break;
+                    }
                 }
             }
         }

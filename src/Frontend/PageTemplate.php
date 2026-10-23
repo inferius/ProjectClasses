@@ -25,6 +25,9 @@ class PageTemplate
 
     private static $template_configuration = [];
 
+    /** dalsi koreny sablon (napr. moduly administrace): [ [ "root" => absolutni cesta, "relative" => URL ] ] */
+    private static $template_roots = [];
+
     /**
      * Načte externí JS soubor/y
      * @param string|string[] $filelist Seznam souborů
@@ -86,6 +89,20 @@ class PageTemplate
      */
     public static function configure($config): void {
         self::$template_configuration = $config;
+    }
+
+    /**
+     * Prida dalsi koren sablon - sablona, ktera v hlavnim adresari (configure) neexistuje, se hleda v nem
+     * (v poradi pridani). Hlavni adresar ma vzdy prednost, dalsi koren tedy sablony jadra neprepise.
+     * Napr. modul administrace se strankami v modules/<id>/templates/pages/<stranka>.
+     * @param string $absolute Absolutni cesta k adresari (obsahuje napr. pages/...)
+     * @param string $relative Adresa adresare pro prohlizec (styly a skripty sablon)
+     */
+    public static function addTemplateRoot(string $absolute, string $relative): void {
+        foreach (self::$template_roots as $r) {
+            if ($r["root"] === $absolute) return;
+        }
+        self::$template_roots[] = [ "root" => rtrim($absolute, "/\\"), "relative" => rtrim($relative, "/") ];
     }
 
     /**
@@ -216,12 +233,25 @@ class PageTemplate
     }
 
     private static function getTemplateData($page_name) {
+        $root = self::$template_configuration["dirs"]["root"];
+        $relative = self::$template_configuration["dirs"]["relative"]["root"];
+        // sablona mimo hlavni adresar - dalsi koreny (addTemplateRoot)
+        if (!empty(self::$template_roots) && !is_dir("{$root}/{$page_name}")) {
+            foreach (self::$template_roots as $r) {
+                if (is_dir("{$r["root"]}/{$page_name}")) {
+                    $root = $r["root"];
+                    $relative = $r["relative"];
+                    break;
+                }
+            }
+        }
+
         return [
             "dirs" => [
                 "web" => self::$template_configuration["dirs"]["web"],
-                "root" => self::$template_configuration["dirs"]["root"] . "/{$page_name}",
+                "root" => $root . "/{$page_name}",
                 "relative" => [
-                    "root" => self::$template_configuration["dirs"]["relative"]["root"] . "/{$page_name}",
+                    "root" => $relative . "/{$page_name}",
                 ],
             ],
         ];

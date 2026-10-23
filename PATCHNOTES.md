@@ -3,6 +3,15 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.5.0 - 2026-10-23
+
+- `PageTemplate::addTemplateRoot($absolute, $relative)`: dalsi koren sablon - sablona, ktera v hlavnim adresari
+  (`configure`) neexistuje, se hleda v pridanych korenech (v poradi pridani). Hlavni adresar ma vzdy prednost.
+  Pouziti: moduly administrace z registru se strankami v `modules/<id>/templates` (EasyAdmin `adminModulesBoot`).
+  Bez volani se nic nemeni.
+
+Projekt: jen `composer update michalosoft/project-classes`.
+
 ## v1.4.4 - 2026-10-23
 
 - `Globals::get()`: chybejici klic vraci null bez Notice "Only variable references should be returned by reference"

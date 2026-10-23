@@ -48,7 +48,7 @@ class WatermarkFunction extends BaseFunction {
 
         $file->transform($image);
         $file->setSaveFunction(function ($img, $path) {
-            $img->save($path, $this->convert_config);
+            $img->save($path, \API\FileAttributeValue::convertConfig($this->convert_config));
         });
 
         //if (!empty($target)) $image->save($target);

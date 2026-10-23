@@ -26,12 +26,50 @@ class FileAttributeValue extends AttributeValue {
     private $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
     private $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
 
-    private $convert_config = [
+    /**
+     * Vychozi kvalita variant obrazku (srcset). Projekt muze prepsat v config.inc.php:
+     *   "image_quality" => [ "avif_quality" => 50, "webp_quality" => 75, "jpeg_quality" => 82, "png_compression_level" => 6 ]
+     * AVIF 60 je vizualne srovnatelne s JPEG 85 pri zhruba polovicni velikosti (AVIF 85 byl vetsi nez JPEG).
+     */
+    public const CONVERT_DEFAULTS = [
         "jpeg_quality" => 85,
         "png_compression_level" => 3,
-        "webp_quality" => 85,
-        "avif_quality" => 85
+        "webp_quality" => 80,
+        "avif_quality" => 60
     ];
+
+    /**
+     * Kvalita ukladani obrazku: $defaults prepsane klicem config "image_quality" (jen znamymi klici).
+     */
+    public static function convertConfig(array $defaults = self::CONVERT_DEFAULTS): array {
+        $cfg = \API\Configurator::$config["image_quality"] ?? [];
+        return array_replace($defaults, is_array($cfg) ? array_intersect_key($cfg, $defaults) : []);
+    }
+
+    /**
+     * Znovu vytvori varianty obrazku (srcset: avif, webp a jpg/png v sirkach) souboru z fp_final_files - napr. po zmene
+     * kvality (config image_quality). Stare varianty smaze a prepise format_info. Vrati novy format_info,
+     * null = soubor neni rastrovy obrazek nebo chybi.
+     */
+    public static function regenerateImageVariants(int $fileId): ?array {
+        $conn = \API\Configurator::$connection;
+        $uploaded = \API\Configurator::$config["path"]["absolute"]["uploaded"];
+        $row = $conn->fetch("SELECT relative_path, format_info, mime_type FROM fp_final_files WHERE id = ?", $fileId);
+        if (!$row || strpos((string)$row["mime_type"], "image/") !== 0 || stripos((string)$row["mime_type"], "svg") !== false) return null;
+        $path = $uploaded . $row["relative_path"];
+        if (!is_file($path)) return null;
+
+        $old = json_decode((string)$row["format_info"], true);
+        foreach ($old["created_files"]["all"] ?? [] as $f) {
+            $variant = !empty($f["relative"]) ? $uploaded . $f["relative"] : null;
+            if ($variant && is_file($variant)) @unlink($variant);
+        }
+
+        $self = (new \ReflectionClass(static::class))->newInstanceWithoutConstructor();
+        $finfo = $self->defaultFilePostProcess($path);
+        $conn->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $fileId);
+        return $finfo;
+    }
 
     /**
      * @return PostprocessData
@@ -281,7 +319,7 @@ class FileAttributeValue extends AttributeValue {
                     }
                     $fname = $info["filename"] . "_{$image_width}w";
                     $cur_path = $target_path . "/" . $fname . ".$te";
-                    $cur_img->save($cur_path, $this->convert_config);
+                    $cur_img->save($cur_path, self::convertConfig());
 
                     $finfo_line = [
                         "basename" => $fname,

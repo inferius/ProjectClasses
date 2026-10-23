@@ -38,7 +38,7 @@ class MaskFunction extends BaseFunction {
         $file->transform($image);
         $file->switchToPng();
         $file->setSaveFunction(function ($img, $path) {
-            $img->save($path, $this->convert_config);
+            $img->save($path, \API\FileAttributeValue::convertConfig($this->convert_config));
         });
 
         return $file;

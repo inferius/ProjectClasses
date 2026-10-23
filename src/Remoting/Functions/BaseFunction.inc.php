@@ -5,6 +5,7 @@ namespace API\Functions;
 class BaseFunction {
     private $arguments = [];
     private $name;
+    // vychozi kvalita vystupu funkci (vodoznak, maska) - config "image_quality" ji prepise (FileAttributeValue::convertConfig)
     protected $convert_config = [
         "jpeg_quality" => 90,
         "png_compression_level" => 3,

@@ -3,6 +3,21 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.7.0 - 2026-10-23
+
+- Kvalita variant obrazku (srcset) jde nastavit v config.inc.php projektu:
+  `"image_quality" => [ "avif_quality" => 60, "webp_quality" => 80, "jpeg_quality" => 85, "png_compression_level" => 3 ]`
+  (jen znamé klice, chybejici = vychozi). Vychozi hodnoty `FileAttributeValue::CONVERT_DEFAULTS`: **AVIF 60** (drive 85),
+  **WebP 80** (drive 85), JPEG 85 a PNG 3 beze zmeny. AVIF 85 byl vetsi nez JPEG 85, AVIF 60 je zhruba o polovinu
+  mensi pri srovnatelne kvalite (fotka 1200 px: 335 kB -> 150 kB).
+- `FileAttributeValue::convertConfig(array $defaults)` - kvalita podle configu (pouziva i vodoznak a maska,
+  ty maji dal vychozi 90).
+- `FileAttributeValue::regenerateImageVariants(int $fileId)` - znovu vytvori varianty obrazku z fp_final_files
+  (stare smaze, prepise format_info), napr. po zmene kvality.
+
+Projekt: `composer update michalosoft/project-classes`. Nove nahrane obrazky maji mensi varianty hned; stavajici se
+zmensi az pregenerovanim (`regenerateImageVariants` pro kazdy obrazek z fp_final_files).
+
 ## v1.6.0 - 2026-10-23
 
 - `PageTemplate::addTemplateRoot($absolute, $relative, $priority = false)`: s `$priority = true` ma sablona z korene

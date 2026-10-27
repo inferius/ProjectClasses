@@ -234,6 +234,14 @@ class PageTemplate
         }
     }
 
+    /**
+     * Je v adresari sablona (page.latte nebo page.php)? Samotny adresar nestaci - projekt muze prepsat jen
+     * podstranku (pages/x/detail) a adresar pages/x pak existuje i bez sablony seznamu.
+     */
+    private static function hasTemplate(string $dir): bool {
+        return is_file("{$dir}/page.latte") || is_file("{$dir}/page.php");
+    }
+
     private static function getTemplateData($page_name) {
         $root = self::$template_configuration["dirs"]["root"];
         $relative = self::$template_configuration["dirs"]["relative"]["root"];
@@ -242,16 +250,16 @@ class PageTemplate
         if (!empty(self::$template_roots)) {
             $found = false;
             foreach (self::$template_roots as $r) {
-                if (!empty($r["priority"]) && is_dir("{$r["root"]}/{$page_name}")) {
+                if (!empty($r["priority"]) && self::hasTemplate("{$r["root"]}/{$page_name}")) {
                     $root = $r["root"];
                     $relative = $r["relative"];
                     $found = true;
                     break;
                 }
             }
-            if (!$found && !is_dir("{$root}/{$page_name}")) {
+            if (!$found && !self::hasTemplate("{$root}/{$page_name}")) {
                 foreach (self::$template_roots as $r) {
-                    if (empty($r["priority"]) && is_dir("{$r["root"]}/{$page_name}")) {
+                    if (empty($r["priority"]) && self::hasTemplate("{$r["root"]}/{$page_name}")) {
                         $root = $r["root"];
                         $relative = $r["relative"];
                         break;

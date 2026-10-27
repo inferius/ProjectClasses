@@ -3,6 +3,14 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.7.2 - 2026-10-27
+
+- `PageTemplate` (koreny `addTemplateRoot`): sablona z korene se vybere jen kdyz adresar stranky obsahuje `page.latte`
+  nebo `page.php`. Drive stacil adresar - projekt, ktery prepsal jen podstranku (`project/templates/pages/x/detail`),
+  tim zakryl i stranku `pages/x` z jadra a ta se vykreslila prazdna (Atoda: seznam Stranky `/s-f/d-cms/`).
+
+Projekt: jen `composer update michalosoft/project-classes`.
+
 ## v1.7.1 - 2026-10-23
 
 - `FileAttributeValue::regenerateImageVariants()` bez fatalni chyby pri ukonceni (objekt bez konstruktoru padal

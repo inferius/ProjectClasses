@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Functions;
 
 class MaskFunction extends BaseFunction {
 
-    public function execute($input_file, $target = null) {
+    public function execute($input_file, $target = null): ?\API\Functions\FileInfoData {
         $file = MaskFunction::parseFile($input_file);
         parent::execute($file, $target);
 
@@ -37,7 +39,7 @@ class MaskFunction extends BaseFunction {
 
         $file->transform($image);
         $file->switchToPng();
-        $file->setSaveFunction(function ($img, $path) {
+        $file->setSaveFunction(function ($img, $path): void {
             $img->save($path, \API\FileAttributeValue::convertConfig($this->convert_config));
         });
 

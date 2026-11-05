@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Functions;
 
 class BaseFunction {
-    private $arguments = [];
+    private array $arguments = [];
     private $name;
     // vychozi kvalita vystupu funkci (vodoznak, maska) - config "image_quality" ji prepise (FileAttributeValue::convertConfig)
     protected $convert_config = [
@@ -15,14 +17,14 @@ class BaseFunction {
 
     /**
      * @param $name
-     * @return Argument
+     * @return Argument|null
      */
-    public function getArgument($name) {
+    public function getArgument($name): ?Argument {
         if (!isset($this->arguments[$name])) return null;
         return $this->arguments[$name];
     }
 
-    public function hasArgument($name) {
+    public function hasArgument($name): bool {
         $name = strtolower($name);
        return isset($this->arguments[$name]);
     }
@@ -37,7 +39,10 @@ class BaseFunction {
         return $this->name;
     }
 
-    private static function _explode($input) {
+    /**
+     * @return non-empty-string[]
+     */
+    private static function _explode($input): array {
         $lng = mb_strlen($input, "utf8");
 
         $ret = [];
@@ -103,36 +108,34 @@ class BaseFunction {
      * @param $file
      * @return \API\Functions\FileInfoData
      */
-    public static function parseFile($file) {
+    public static function parseFile($file): ?\API\Functions\FileInfoData {
         if (is_string($file)) return new \API\Functions\FileInfoData($file);
         elseif ($file instanceof \API\Functions\FileInfoData) return $file;
 
         return null;
     }
 
-    public static function parse($input) {
+    public static function parse($input): \API\Functions\BaseFunction|\API\Functions\WatermarkFunction|\API\Functions\MaskFunction|null {
         //$data = explode(" ", $input);
         $data = BaseFunction::_explode($input);
         //$data = preg_split('/(?<!\\)(?:\\{2})*"[^"\\]*(?:\\.[^"\\]*)*"(*SKIP)(*F)|\h+/gmi', $input);
         $fnc_class = null;
-        /**
-         * @var \API\Functions\Argument
-         */
+        /** @var \API\Functions\Argument|null $last_arg */
         $last_arg = null;
 
         $i = 0;
         foreach ($data as $item) {
             if ($i == 0) {
-                switch (strtolower($item)) {
-                    case "mask": $fnc_class = new \API\Functions\MaskFunction(); break;
-                    case "watermark": $fnc_class = new \API\Functions\WatermarkFunction(); break;
-                    default: $fnc_class = new \API\Functions\BaseFunction(); break;
-                }
+                $fnc_class = match (strtolower($item)) {
+                    "mask" => new \API\Functions\MaskFunction(),
+                    "watermark" => new \API\Functions\WatermarkFunction(),
+                    default => new \API\Functions\BaseFunction(),
+                };
                 $fnc_class->name = $item;
 
             }
             else {
-                if (\Nette\Utils\Strings::startsWith($item, "-")) {
+                if (\str_starts_with($item, "-")) {
                     if (!empty($last_arg)) {
                         $fnc_class->arguments[$last_arg->getName()] = $last_arg;
                     }

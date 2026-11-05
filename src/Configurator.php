@@ -1,67 +1,85 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
-use phpDocumentor\Reflection\Types\Callable_;
-
+/**
+ * Globalni nastaveni knihovny - projekt ho naplni pri startu (init.inc.php).
+ *
+ * Vlastnosti, ktere projekt plni objektem tretich stran (spojeni s DB, memcache, presenter, funkce), zustavaji
+ * bez nativniho typu - typ je v @var. Testy je nahrazuji vlastnimi objekty (tests/Support).
+ */
 class Configurator {
-    /** @var \Nette\Database\Explorer $explorer */
+    /** @var \Nette\Database\Explorer|null */
     public static $explorer;
-    /** @var \Nette\Database\Connection $connection */
+    /** @var \Nette\Database\Connection|null */
     public static $connection;
-    /** @var Callable_\Nette\Database\Connection $connectionInformationSchema */
+    /**
+     * Spojeni do information_schema (TableObject) - projekt dava funkci, ktera spojeni vytvori az pri prvnim pouziti.
+     * @var \Closure|\Nette\Database\Connection|null
+     */
     public static $connectionInformationSchema;
-    /** @var \Memcache $memcache */
+    /** @var \Memcache|\Memcached|null */
     public static $memcache;
-    /** @var string $locale Obsahuje aktuální jazyk, který je použit pro předání */
-    public static $locale = "cs_CZ";
 
     /**
-     * ID aktuálního jazyka, načtě se ze session na webu
-     * @var int
+     * Aktualni locale (formatovani data a cisel, klice prekladu). Nullable: weby ho plni ze session, kde muze chybet;
+     * knihovna cte pres locale() s vychozim DEFAULT_LOCALE.
      */
-    public static $currentLanguageId = 2;
+    public static ?string $locale = self::DEFAULT_LOCALE;
+
+    public const string DEFAULT_LOCALE = "cs_CZ";
+
+    /** Locale pro formatovani a klice prekladu - $locale, bez nej DEFAULT_LOCALE */
+    public static function locale(): string {
+        return self::$locale === null || self::$locale === "" ? self::DEFAULT_LOCALE : self::$locale;
+    }
 
     /**
-     * ID aktuálního jazyka, načtě se ze session na webu
-     * @var int
+     * ID aktualniho jazyka (web: ze session). Null = vychozi jazyk 2 (BaseObject).
+     * Projekt bez strict_types muze priradit i ciselny retezec, PHP ho prevede.
      */
-    public static $editLanguageId = null;
+    public static ?int $currentLanguageId = 2;
 
-    /**
-     * Prefix lokalizací, pokud se na stejném serveru nacházi více webu, aby se nehádali
-     * @var string
-     */
-    public static $localizationPrefix = "loc";
+    /** ID jazyka editace v administraci; ma prednost pred $currentLanguageId */
+    public static ?int $editLanguageId = null;
+
+    /** Prefix klicu prekladu v memcache, pokud vic webu sdili jednu memcache */
+    public static string $localizationPrefix = "loc";
 
     /**
      * Prefix klicu memcache pro popisy trid a vyctu (ModelClassDescription..., ModelEnumDescription...).
-     * Prazdny = klice jako do 1.7. Nastavit, kdyz vic projektu sdili jednu memcache - jinak si stejne pojmenovane
-     * tridy prepisuji popis. Administrace pak musi zneplatnovat pres ClassDescription::forget(), ne skladat klic sama.
-     * @var string
+     * Nastavit, kdyz vic projektu sdili jednu memcache - jinak si stejne pojmenovane tridy prepisuji popis.
+     * Administrace zneplatnuje pres ClassDescription::forget(), ne skladanim klice.
      */
-    public static $cachePrefix = "";
+    public static string $cachePrefix = "";
 
     /**
-     * Klic memcache s prefixem projektu ($cachePrefix)
-     * @param string $key
-     * @return string
+     * Verze klicu cache (popisy trid a vyctu se ukladaji serializovane - objekty z 1.x do typovanych trid 2.0
+     * rozbalit nejdou, proto maji 2.0 klice vlastni).
+     */
+    public const string CACHE_VERSION = "pc2";
+
+    /**
+     * Klic memcache s verzi knihovny a prefixem projektu ($cachePrefix)
      */
     public static function cacheKey(string $key): string {
-        return empty(self::$cachePrefix) ? $key : self::$cachePrefix . ":" . $key;
+        return self::CACHE_VERSION . ":" . (self::$cachePrefix === "" ? "" : self::$cachePrefix . ":") . $key;
     }
 
-    /** @var array Konfigurační pole */
-    public static $config = [];
+    /** Konfiguracni pole projektu (config.inc.php) */
+    public static array $config = [];
 
     /**
-     * Prezentační vrstva
-     * @var mixed $presenter
+     * Prezentacni vrstva (Latte\Engine nebo objekt s render() a renderToString())
+     * @var object|null
      */
     public static $presenter;
 
     /**
-     * @var callable Funkce pro nahrazování textu
+     * Funkce pro nahrazovani textu (Functions\Argument)
+     * @var callable|null
      */
     public static $replaceTextFnc;
 }

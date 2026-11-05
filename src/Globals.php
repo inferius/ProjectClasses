@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
+namespace API;
+
 class Globals
 {
-    private static $vars = array();
+    private static $vars = [];
 
     // Sets the global one time.
-    public static function set($_name, $_value)
+    public static function set($_name, $_value): void
     {
         /*if(array_key_exists($_name, self::$vars))
         {
@@ -34,11 +38,11 @@ class Globals
         return self::$vars;
     }
 
-    public static function clear() {
-        self::$vars = array();
+    public static function clear(): void {
+        self::$vars = [];
     }
 
-    public static function is_set($_name) {
+    public static function is_set($_name): bool {
         return array_key_exists($_name, self::$vars);
     }
 }

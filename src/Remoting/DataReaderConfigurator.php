@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Exceptions\AttributeTypeNotFound;
 
 class DataReaderConfigurator {
-    private static $orderFnc = [ "rand()" ];
+    private static array $orderFnc = [ "rand()" ];
 
     /** @var \API\Model\ClassDescription */
     private $classInfo;
@@ -24,14 +26,14 @@ class DataReaderConfigurator {
     public function getClassInfo(): \API\Model\ClassDescription {
         return $this->classInfo;
     }
-    public function setClassInfo($classInfo) {
+    public function setClassInfo($classInfo): void {
         $this->classInfo = $classInfo;
     }
 
     public function getLangId(): int {
         return $this->langId;
     }
-    public function setLangId($l_id) {
+    public function setLangId($l_id): void {
         $this->langId = $l_id;
     }
 
@@ -78,8 +80,8 @@ class DataReaderConfigurator {
     /**
      * @throws AttributeTypeNotFound
      */
-    public static function getFullAttrStatic(string $attrName, \API\Model\ClassDescription $classInfo) {
-        if (strpos($attrName, ".") !== false) {
+    public static function getFullAttrStatic(string $attrName, \API\Model\ClassDescription $classInfo): string {
+        if (str_contains($attrName, ".")) {
             $attrInfo = $classInfo->getAttributeInfo($attrName);
             $info = $attrInfo->getSpecification();
             if ($info instanceof \API\Model\ClassDescription) {

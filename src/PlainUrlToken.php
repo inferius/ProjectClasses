@@ -1,19 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 final class PlainUrlToken {
-    private $token;
-    private $plain_token;
-    /** @var string[] $groups Skupiny do kterých daný token patří */
-    private $groups = [];
-    private $slash_at_end;
-    private $position;
-    private $no_group_position;
-    private $custom_data = [];
-
-    /** @var PlainUrl $plain_url */
-    private $plain_url;
+    private string $plain_token;
 
     public function token($is_plain = false): string {
         return $is_plain ? $this->plain_token : $this->token;
@@ -23,24 +15,13 @@ final class PlainUrlToken {
      * Skupiny tokenu
      * @return string[]
      */
-    public function groups(): int { return $this->groups; }
+    public function groups(): array { return $this->groups; }
 
     /**
      * Vrací pozici tokenu
      * @return int
      */
     public function position(): int { return $this->position; }
-
-    /**
-     * Vrací informaci o tom, zda je zakončen lomítkem
-     * @return bool true pokud je lomítko na konci
-     *
-     * @deprecated use slashAtEnd instead. Remove on next version
-     */
-    public function slash_at_end(): bool {
-        \API\Utils\Deprecation::trigger("PlainUrlToken::slash_at_end() - pouzijte slashAtEnd()");
-        return $this->slashAtEnd();
-    }
 
     /**
      * Vrací informaci o tom, zda je zakončen lomítkem
@@ -67,7 +48,7 @@ final class PlainUrlToken {
      * @param string[] $group seznam skupin
      * @return bool
      */
-    public function hasAnyGroups(array $group = []) {
+    public function hasAnyGroups(array $group = []): bool {
         if (empty($group)) return false;
         foreach ($group as $grp) {
             if (in_array(mb_strtolower($grp, "utf8"), $this->groups)) return true;
@@ -101,7 +82,7 @@ final class PlainUrlToken {
      * @param $value
      * @return void
      */
-    public function setCustomDataItem(string $key, $value) {
+    public function setCustomDataItem(string $key, $value): void {
         $this->custom_data[$key] = $value;
     }
 
@@ -126,15 +107,19 @@ final class PlainUrlToken {
         else return $this->custom_data[$key];
     }
 
-    public function __construct(string $token, array $groups, bool $slash_at_end, int $position, int $no_group_position, PlainUrl $plain_url, array $custom_data = []) {
-        $this->token = $token;
-        $this->plain_token = html_entity_decode(urldecode($token));
-        $this->groups = $groups;
-        $this->slash_at_end = $slash_at_end;
-        $this->position = $position;
-        $this->custom_data = $custom_data;
-        $this->no_group_position = $no_group_position;
-        $this->plain_url = $plain_url;
+    /**
+     * @param string[] $groups skupiny, do kterych token patri
+     */
+    public function __construct(
+        private readonly string $token,
+        private readonly array $groups,
+        private readonly bool $slash_at_end,
+        private readonly int $position,
+        private readonly int $no_group_position,
+        private readonly PlainUrl $plain_url,
+        private array $custom_data = []
+    ) {
+        $this->plain_token = html_entity_decode(urldecode($this->token));
     }
 
 }

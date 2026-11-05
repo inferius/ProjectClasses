@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Event;
 
 class Event implements EventInterface
 {
-    private $name;
+    private string $name;
     private $targer;
-    private $params;
-    private $stop_propagation = false;
+    private ?array $params = null;
+    private bool $stop_propagation = false;
 
     public function getName(): string {
         return $this->name;
@@ -25,19 +27,19 @@ class Event implements EventInterface
         return !empty($this->params[$name]) ? $this->params[$name] : false;
     }
 
-    public function setName(string $name) {
+    public function setName(string $name): void {
         $this->name = $name;
     }
 
-    public function setTarget($target = null) {
+    public function setTarget($target = null): void {
         $this->targer = $target;
     }
 
-    public function setParams(array $params) {
+    public function setParams(array $params): void {
         $this->params = $params;
     }
 
-    public function stopPropagation(bool $flag) {
+    public function stopPropagation(bool $flag): void {
         $this->stop_propagation = $flag;
     }
 

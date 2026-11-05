@@ -10,7 +10,7 @@ final class FakeConnection {
     public $calls = [];
 
     /** @var array<string, callable> zacatek SQL -> fn(array $params) => vysledek */
-    private $handlers = [];
+    private array $handlers = [];
 
     public function on(string $sqlStart, callable $handler): self {
         $this->handlers[$sqlStart] = $handler;
@@ -32,7 +32,7 @@ final class FakeConnection {
     private function answer(string $sql, array $params) {
         $this->calls[] = [ "sql" => $sql, "params" => $params ];
         foreach ($this->handlers as $start => $handler) {
-            if (strpos($sql, $start) === 0) return $handler($params);
+            if (str_starts_with($sql, $start)) return $handler($params);
         }
         return null;
     }

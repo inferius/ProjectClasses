@@ -5,12 +5,12 @@ use PHPUnit\Framework\TestCase;
 
 final class DeprecationTest extends TestCase {
     /** @var string[] */
-    private $messages = [];
+    private array $messages = [];
 
     protected function setUp(): void {
         Deprecation::reset();
         $this->messages = [];
-        set_error_handler(function ($severity, $message) {
+        set_error_handler(function ($severity, $message): true {
             if ($severity === E_USER_DEPRECATED) $this->messages[] = $message;
             return true;
         });
@@ -28,13 +28,7 @@ final class DeprecationTest extends TestCase {
 
         $this->assertCount(2, $this->messages);
         $this->assertStringContainsString("project-classes: A::b() - pouzijte c()", $this->messages[0]);
-        $this->assertStringContainsString("UPGRADE-2.0.md", $this->messages[0]);
+        $this->assertStringContainsString("pristi hlavni verzi", $this->messages[0]);
     }
 
-    public function testDeprecatedAliasStillWorks(): void {
-        $token = (new \API\PlainUrl("/novinky/clanek/", true))->last();
-        $this->assertSame($token->slashAtEnd(), $token->slash_at_end());
-        $this->assertCount(1, $this->messages);
-        $this->assertStringContainsString("slash_at_end", $this->messages[0]);
-    }
 }

@@ -1,21 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class TableAttributeValue {
-    protected $data_type;
-    /** @var mixed */
-    protected $value = null;
     public $isEdited = false;
-    protected $name;
 
-    public function __construct($attrName, $value, $data_type) {
-        $this->name = $attrName;
-        $this->value = $value;
-        $this->data_type = $data_type;
+    /**
+     * @param mixed $value
+     */
+    public function __construct(protected $name, protected $value, protected $data_type)
+    {
     }
 
-    public function setValue($value) {
+    public function setValue($value): void {
         $this->isEdited = true;
         $this->value = $value;
     }

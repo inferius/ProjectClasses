@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Model\IAttributeInfo;
@@ -7,11 +9,8 @@ use API\Model\IAttributeInfo;
 class ClassAttributeValue extends AttributeValue {
     /** @var BaseObject|null */
     protected $obj_value;
-    /** @var BaseObject */
-    private $parent_obj;
-    public function __construct($value, IAttributeInfo $attr_info, BaseObject $parent_obj) {
+    public function __construct($value, IAttributeInfo $attr_info, private readonly BaseObject $parent_obj) {
         if ($value == null) $value = 1;
-        $this->parent_obj = $parent_obj;
         parent::__construct($value, $attr_info);
     }
 
@@ -20,7 +19,7 @@ class ClassAttributeValue extends AttributeValue {
             $this->obj_value = $this->value == 1 ? null : new BaseObject($this->getDataSubType(), $this->value, $this->parent_obj->getLanguage());
             if (!empty($this->obj_value)) {
                 $this->obj_value->setUseTransaction(false);
-                $this->obj_value->eventManager()->attach("change", function() { $this->_listenerChange(); });
+                $this->obj_value->eventManager()->attach("change", function(): void { $this->_listenerChange(); });
             }
         }
 
@@ -41,14 +40,14 @@ class ClassAttributeValue extends AttributeValue {
             $this->value = $value->isNew() ? null : $value->getId();
             $this->obj_value->setUseTransaction(false);
 
-            $this->obj_value->eventManager()->attach("change", function() { $this->_listenerChange(); });
+            $this->obj_value->eventManager()->attach("change", function(): void { $this->_listenerChange(); });
         }
         else $set_value = $value;
 
         parent::setValue($set_value);
     }
 
-    private function _listenerChange() {
+    private function _listenerChange(): void {
         $this->is_edited = true;
         $this->eventManager()->trigger("change", $this);
     }

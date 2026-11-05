@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+namespace API;
+
 /**
  * A class used convert string representations or php arrays to an array without using eval()
  */
@@ -25,7 +29,7 @@ class ArrayTokenScanner
         }
 
         // Given array format is invalid
-        throw new InvalidArgumentException("Invalid array format.");
+        throw new \InvalidArgumentException("Invalid array format.");
     }
 
     /**
@@ -152,7 +156,7 @@ class ArrayTokenScanner
         if(is_array($tokens)) {
 
             // Filter tokens
-            $tokens = array_values(array_filter($tokens, [$this, 'accept']));
+            $tokens = array_values(array_filter($tokens, $this->accept(...)));
 
             // Normalize token format, make syntax characters look like tokens for consistent parsing
             return $this->normalize($tokens);
@@ -168,7 +172,7 @@ class ArrayTokenScanner
      * @param array|string $value    A token or syntax character
      * @return bool
      */
-    protected function accept($value)
+    protected function accept($value): bool
     {
         if(is_string($value)) {
             // Allowed syntax characters: comma's and brackets.
@@ -189,7 +193,7 @@ class ArrayTokenScanner
      *
      * @return array
      */
-    protected function normalize(array $tokens)
+    protected function normalize(array $tokens): array
     {
         // Define some constants for consistency. These characters are not "real" tokens.
         defined('T_MINUS')           ?: define('T_MINUS',           '-');
@@ -199,15 +203,12 @@ class ArrayTokenScanner
         defined('T_ARRAY_CLOSE')     ?: define('T_ARRAY_CLOSE',     ')');
 
         // Normalize the token array
-        return array_map( function($token) {
-
+        return array_map( 
             // If the token is a syntax character ($token[0] will be string) than use the token (= $token[0]) as value (= $token[1]) as well.
-            return [
-                0 => $token[0],
-                1 => (is_string($token[0])) ? $token[0] : $token[1]
-            ];
-
-        }, $tokens);
+            fn(array $token): array => [
+            0 => $token[0],
+            1 => (is_string($token[0])) ? $token[0] : $token[1]
+        ], $tokens);
     }
 
     /**

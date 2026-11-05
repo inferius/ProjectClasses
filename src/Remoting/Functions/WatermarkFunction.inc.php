@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Functions;
 
 
@@ -47,7 +49,7 @@ class WatermarkFunction extends BaseFunction {
         $image->paste($watermark, $point);
 
         $file->transform($image);
-        $file->setSaveFunction(function ($img, $path) {
+        $file->setSaveFunction(function ($img, $path): void {
             $img->save($path, \API\FileAttributeValue::convertConfig($this->convert_config));
         });
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Model;
 
 use API\Exceptions\AttributeTypeNotFound;
@@ -10,12 +12,11 @@ class ClassDescription/* implements ArrayAccess*/ {
     private $name;
     /** @var string $text_id */
     private $text_id;
-    /** @var TableClassInfo $table */
-    private $table;
+    private readonly \API\Model\TableClassInfo $table;
     /**
      * @var IAttributeInfo[]
      */
-    private $attributes = [];
+    private array $attributes = [];
 
     /**
      * Vrátí název třídy
@@ -80,6 +81,8 @@ class ClassDescription/* implements ArrayAccess*/ {
         $class_info = \API\Configurator::$connection->fetch("SELECT * FROM model_classes WHERE text_id = ?", $text_id);
         $attrs = \API\Configurator::$connection->query("SELECT mat.*, mca.attr_alias FROM model_attr_types AS mat INNER JOIN model_classes_attrs AS mca ON mat.text_id = mca.a_txt_id WHERE mca.c_txt_id = ?", $text_id);
 
+        if (empty($class_info)) throw new \InvalidArgumentException("Class '$text_id' not found (model_classes)");
+
         $this->name = $class_info["class_name"];
         $this->text_id = $class_info["text_id"];
         $this->table = new TableClassInfo($class_info["table_name"]);
@@ -105,8 +108,8 @@ class ClassDescription/* implements ArrayAccess*/ {
     /**
      * @throws AttributeTypeNotFound
      */
-    public function getSQLAttrName(string $attrName) {
-        if (strpos($attrName, ".") !== false) {
+    public function getSQLAttrName(string $attrName): string {
+        if (str_contains($attrName, ".")) {
             $attrInfo = $this->getAttributeInfo($attrName);
             $info = $attrInfo->getSpecification();
             if ($info instanceof \API\Model\ClassDescription) {
@@ -180,7 +183,7 @@ class ClassDescription/* implements ArrayAccess*/ {
 }
 
 
-function getEnumDescription_P($enum_txt_id) {
+function getEnumDescription_P($enum_txt_id): array {
     $enum_info = \API\Configurator::$connection->fetch("SELECT * FROM model_enums WHERE text_id = ?", $enum_txt_id);
 
     $enum_items = \API\Configurator::$connection->fetchAll("SELECT text_id, lockey as name FROM model_enums_item WHERE parent_id = ?", $enum_info["id"]);
@@ -193,7 +196,7 @@ function getEnumDescription_P($enum_txt_id) {
     ];
 }
 
-function getFilePostprocess_P($c_txt_id, $a_txt_id) {
+function getFilePostprocess_P($c_txt_id, $a_txt_id): ?\Nette\Database\Row {
     global $connection;
 
     //return \API\Configurator::$connection->fetchAll("SELECT fp.text_id, fp.method_body FROM model_classes_attrs_f_posprocess AS mcap INNER JOIN files_postprocess AS fp ON fp.text_id = mcap.pp_txt_id WHERE mcap.a_txt_id = ? AND mcap.c_txt_id = ?", $a_txt_id, $c_txt_id);

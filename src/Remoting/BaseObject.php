@@ -1,43 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Exceptions\ValidationException;
 use API\Model\DataTypes;
 
+/**
+ * Objekt tridy EasyAdminu (radek hlavni tabulky + jazykove tabulky).
+ * Podtridy musi zachovat podpis konstruktoru (getObjectByAttr vraci new static).
+ * @phpstan-consistent-constructor
+ */
 class BaseObject {
-    /** @var string */
-    protected $objectName;
-    /** @var int */
-    protected $currentLanguage = 2;
+    /** vychozi jazyk, kdyz neni zadany ani v Configurator */
+    public const int DEFAULT_LANGUAGE = 2;
 
-    protected $is_edited;
+    protected string $objectName;
+    protected int $currentLanguage = self::DEFAULT_LANGUAGE;
 
-    /** @var \DateTime */
-    protected $created;
-    /** @var \DateTime */
-    protected $edited;
+    protected bool $is_edited = false;
 
-    /** @var ?int */
-    protected $id;
+    protected ?\DateTime $created = null;
+    protected ?\DateTime $edited = null;
 
-    protected $use_transaction = true;
+    protected ?int $id = null;
 
-    /** @var Model\ClassDescription $class_info */
-    protected $class_info;
+    protected bool $use_transaction = true;
 
-    /** @var IAttributeValue[]  */
-    protected $values = [];
+    protected \API\Model\ClassDescription $class_info;
 
-    /** @var \API\Event\EventManagerInterface */
-    protected $_eventManager;
+    /** @var array<string, IAttributeValue> */
+    protected array $values = [];
 
-    /** @return \API\Event\EventManagerInterface */
-    public function eventManager() {
+    protected \API\Event\EventManagerInterface $_eventManager;
+
+    public function eventManager(): \API\Event\EventManagerInterface {
         return $this->_eventManager;
     }
 
-    public function setUseTransaction(bool $lang) {
+    public function setUseTransaction(bool $lang): void {
         $this->use_transaction = $lang;
     }
     public function getUseTransaction(): bool {
@@ -57,7 +59,7 @@ class BaseObject {
      * @param int $lang
      * @return void
      */
-    public function setLanguage(int $lang) {
+    public function setLanguage(int $lang): void {
         $this->currentLanguage = $lang;
 
         $this->reload();
@@ -78,9 +80,8 @@ class BaseObject {
 
     /**
      * Informace o tom, zda je objekt rozeditovaný
-     * @return true
      */
-    public function isEdited() {
+    public function isEdited(): bool {
         return $this->is_edited;
     }
 
@@ -88,15 +89,14 @@ class BaseObject {
      * Informace o tom zda je objekt nový
      * @return bool
      */
-    public function isNew() {
+    public function isNew(): bool {
         return empty($this->id);
     }
 
     /**
-     * Vrátí ID objektu
-     * @return int
+     * Vrátí ID objektu, null u noveho (jeste neulozeneho) objektu
      */
-    public function getId(): int {
+    public function getId(): ?int {
         return $this->id;
     }
 
@@ -116,7 +116,13 @@ class BaseObject {
         return $this->class_info;
     }
 
-    public function __construct(string $object_type, $id = null, $lang_id = null) {
+    /**
+     * @param string $object_type textove id tridy
+     * @param int|string|null $id id objektu; ciselny retezec (z URL, JSON) se prevede, prazdna hodnota = novy objekt
+     * @param int|string|null $lang_id jazyk; bez nej jazyk editace, jinak aktualni jazyk
+     * @throws \API\Exceptions\ObjectNotFoundException id neni cislo
+     */
+    public function __construct(string $object_type, int|string|null $id = null, int|string|null $lang_id = null) {
 
         $this->_eventManager = new \API\Event\EventManager();
 
@@ -128,19 +134,18 @@ class BaseObject {
 
         $this->class_info = $cd;
         $this->objectName = $object_type;
-        $this->id = $id;
+        $this->id = self::normalizeId($id, $object_type);
 
         // jazyk: zadany, jinak jazyk editace, jinak aktualni jazyk
-        if (!empty($lang_id)) $this->currentLanguage = $lang_id;
+        $lang = self::normalizeId($lang_id, $object_type);
+        if (!empty($lang)) $this->currentLanguage = $lang;
         else if (!empty(\API\Configurator::$editLanguageId)) $this->currentLanguage = \API\Configurator::$editLanguageId;
-        else $this->currentLanguage = \API\Configurator::$currentLanguageId;
+        else $this->currentLanguage = \API\Configurator::$currentLanguageId ?? self::DEFAULT_LANGUAGE;
 
-
-        if (empty($id)) {
+        if ($this->id === null) {
             $this->is_edited = true;
             $this->created = new \DateTime();
             $this->edited = null;
-            $this->id = null;
         }
 
         $this->reload();
@@ -153,21 +158,23 @@ class BaseObject {
      * @param $value
      * @return static|null
      */
-    public static function getObjectByAttr(string $object_type, string $attrname, $value): ?self {
+    public static function getObjectByAttr(string $object_type, string $attrname, mixed $value): ?static {
 
 
-        if (strpos($attrname, ".") !== FALSE) {
+        if (str_contains($attrname, ".")) {
             return null;
         }
 
         $cd = \API\Model\ClassDescription::get($object_type);
-        if (empty($cd->getAttributeInfo($attrname))) return null;
+        // getAttributeInfo() u neznameho atributu vyhazuje vyjimku - drive se tu misto null hodila AttributeTypeNotFound
+        if (!$cd->hasAttribute($attrname)) return null;
 
         $table_name = $cd->table()->getTableName();
         $attr = $cd->table()->getColumnNameId();
 
         if ($cd->getAttributeInfo($attrname)->flags()->isLocalizable()) {
-            $table_name = $cd->table()->getTableName();
+            // lokalizovany atribut je v jazykove tabulce (drive se hledal v hlavni a dotaz padal)
+            $table_name = $cd->table()->getTableLangName();
             $attr = $cd->table()->getColumnNameParentId();
         }
 
@@ -175,14 +182,33 @@ class BaseObject {
 
         if (empty($id)) return null;
 
-        return new self($object_type, $id);
+        return new static($object_type, (int)$id);
+    }
+
+    /**
+     * Id z parametru: int, ciselny retezec, nebo prazdna hodnota (null, "", 0) = bez id.
+     * @throws \API\Exceptions\ObjectNotFoundException neciselny retezec
+     */
+    private static function normalizeId(int|string|null $id, string $object_type): ?int {
+        if ($id === null || $id === "" || $id === 0 || $id === "0") return null;
+        if (is_int($id)) return $id;
+        if (ctype_digit($id)) return (int)$id;
+
+        throw new \API\Exceptions\ObjectNotFoundException("Object $object_type: id \"$id\" is not a number");
+    }
+
+    /** Hodnota sloupce created/edited (Nette vraci DateTime, jinak retezec) -> DateTime */
+    private static function toDateTime(mixed $value): ?\DateTime {
+        if ($value instanceof \DateTimeInterface) return \DateTime::createFromInterface($value);
+        if (is_string($value) && $value !== "") return date_create($value) ?: null;
+        return null;
     }
 
     /**
      * Přenačte data objektu z db
      * @return void
      */
-    public function reload() {
+    public function reload(): void {
         $cd = \API\Model\ClassDescription::get($this->getObjectName());
 
         $attrs = [
@@ -223,15 +249,16 @@ class BaseObject {
 
             $this->values[$key] = AttributeManager::get($data == null ? null : $data[$key], $data_values[$key], $cd, $this);
 
-            $this->values[$key]->eventManager()->attach("change", function() {
+            $this->values[$key]->eventManager()->attach("change", function(): void {
                 $this->is_edited = true;
                 $this->eventManager()->trigger("change", $this);
             });
         }
 
         if (!$this->isNew()) {
-            $this->created = @\DateTime::createFromFormat("Y-m-d", $data["created"]);
-            $this->edited = @\DateTime::createFromFormat("Y-m-d", $data["edited"]);;
+            // drive formatem Y-m-d, ktery na sloupec datetime nepasoval (getCreated() vracel false)
+            $this->created = self::toDateTime($data["created"] ?? null);
+            $this->edited = self::toDateTime($data["edited"] ?? null);
         }
     }
 
@@ -269,7 +296,7 @@ class BaseObject {
         return $attrdata->getValue();
     }
 
-    public function setValue($attrName, $value) {
+    public function setValue(string $attrName, mixed $value): void {
         $this->is_edited = true;
         if (self::isBindingAttribute($attrName)) {
             $attrNames = BaseObject::getFirstAttr($attrName);
@@ -281,8 +308,6 @@ class BaseObject {
                 throw new \InvalidArgumentException("Not set binding attribute to value where is not type Class");
             }
             if ($this->values[$attrNames["attrName"]]->isEmpty()) {
-                /** @var \API\Model\ClassDescription $ci */
-                //$ci = $ai->getSpecification();
                 $o = new \API\BaseObject($ai->getSubtype());
                 $this->values[$attrNames["attrName"]]->setValue($o);
 
@@ -291,7 +316,7 @@ class BaseObject {
                 if ($ai->getSubtype() == "url_manager") {
                     $url_object = $o;
 
-                    $this->eventManager()->attach("saved", function() use (&$url_object) {
+                    $this->eventManager()->attach("saved", function() use (&$url_object): void {
                         $url_object->setValue("table_name", "obj:" . $this->class_info->getTextId());
                         $url_object->setValue("table_id", $this->getId());
                         $url_object->save();
@@ -310,7 +335,8 @@ class BaseObject {
         }
     }
 
-    public static function getFirstAttr($attrName) {
+    /** @return array{attrName: string, next: ?string} */
+    public static function getFirstAttr(string $attrName): array {
         if (self::isBindingAttribute($attrName)) {
             $r = explode(".", $attrName, 2);
             return [ "attrName" => $r[0], "next" => $r[1] ];
@@ -318,15 +344,15 @@ class BaseObject {
         else return [ "attrName" => $attrName, "next" => null ];
     }
 
-    public static function isBindingAttribute($attrName) {
-        return strpos($attrName, ".");
+    public static function isBindingAttribute(string $attrName): bool {
+        return strpos($attrName, ".") > 0;
     }
 
     /**
      * Provede smazání objektu
      * @return void
      */
-    public function delete() {
+    public function delete(): void {
         \API\Configurator::$connection->query("DELETE FROM {$this->class_info->table()->getTableName()} WHERE id = ?", $this->id);
         \API\Configurator::$connection->query("DELETE FROM {$this->class_info->table()->getTableLangName()} WHERE parent_id = ?", $this->id);
 
@@ -338,7 +364,7 @@ class BaseObject {
     /**
      * @throws ValidationException
      */
-    public function save() {
+    public function save(): void {
         if (!$this->isEdited()) return;
 
         try {
@@ -407,7 +433,7 @@ class BaseObject {
 
                 \API\Configurator::$connection->query("INSERT INTO {$this->class_info->table()->getTableName()} ", $n_table);
 
-                $i_id = \API\Configurator::$connection->getInsertId();
+                $i_id = (int)\API\Configurator::$connection->getInsertId();
                 $loc_table["parent_id"] = $i_id;
 
                 \API\Configurator::$connection->query("INSERT INTO {$this->class_info->table()->getTableLangName()} ", $loc_table);

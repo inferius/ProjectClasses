@@ -12,8 +12,8 @@ final class UsersTest extends TestCase {
 
     private function user(array $row, array $groups): Users {
         Configurator::$connection = (new FakeConnection())
-            ->on("SELECT * FROM users_data WHERE id = ?", function () use ($row) { return (object)$row; })
-            ->on("SELECT pg.* FROM perm_groups", function () use ($groups) { return $groups; });
+            ->on("SELECT * FROM users_data WHERE id = ?", fn(): \stdClass => (object)$row)
+            ->on("SELECT pg.* FROM perm_groups", fn(): array => $groups);
 
         return new Users($row["id"]);
     }

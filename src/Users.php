@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace API;
 
 use API\Exceptions\UserNotFoundException;
@@ -18,19 +20,19 @@ class Users {
     protected $opti_data;
     protected $created;
 
-    private static $attributes_manager;
+    private static ?\API\AttrTypesManager $attributes_manager = null;
 
 
     public function getId(): int { return $this->id; }
     public function getName(): string { return (string)($this->user->name ?? ""); }
     public function getCreated() { return $this->user->created; }
-    public function getGroups() { return empty($this->groups) ? null : array_keys($this->groups); }
+    public function getGroups(): ?array { return empty($this->groups) ? null : array_keys($this->groups); }
 
     /**
      * ID skupin uzivatele (perm_groups.id), prazdne pole bez skupin
      * @return int[]
      */
-    public function getGroupIds(): array { return array_map("intval", $this->group_id_list); }
+    public function getGroupIds(): array { return array_map(intval(...), $this->group_id_list); }
 
     /**
      * Super admin smi vse (users_data.is_super_admin - sloupec pridava modul opravneni; bez nej false)
@@ -50,7 +52,7 @@ class Users {
      * @throws UserOperationNoAllowed
      * @throws UserNotFoundException
      */
-    function __construct(int $user_id) {
+    public function __construct(int $user_id) {
 
 
         $this->user = \API\Configurator::$connection->fetch("SELECT * FROM users_data WHERE id = ?", $user_id);
@@ -87,7 +89,7 @@ class Users {
      * @throws UserOperationNoAllowed
      * @throws UserNotFoundException
      */
-    public static function loadByToken(string $user_logged_token) {
+    public static function loadByToken(string $user_logged_token): \API\Users {
 
 
         $user = \API\Configurator::$connection->fetch("SELECT * FROM user_tokens WHERE token = ? AND expiration > now() AND valid_from < now()", $user_logged_token);
@@ -101,7 +103,7 @@ class Users {
      * @throws UserOperationNoAllowed
      * @throws UserNotFoundException
      */
-    private static function registerUserLogin($id, $permanent = false, $is_admin_login = false) {
+    private static function registerUserLogin(int $id, bool $permanent = false, bool $is_admin_login = false): void {
 
         $user = new Users($id);
 
@@ -150,21 +152,21 @@ class Users {
         @setcookie("l_t", $token, $permanent? $expiration_time : 0);
     }
 
-    public static function registerLogin(int $id, bool $permanent = false) {
+    public static function registerLogin(int $id, bool $permanent = false): void {
         self::registerUserLogin($id, $permanent, false);
     }
 
-    public static function loginAdminAs(int $id) {
+    public static function loginAdminAs(int $id): void {
         self::registerUserLogin($id, false, false);
     }
 
-    public static function logout() {
+    public static function logout(): void {
 
 
         if (empty($_SESSION["login_data"]["is_logged"])) return;
 
         $token = $_SESSION["login_data"]["token"];
-        @setcookie("l_t", "", time() + 100);
+        @setcookie("l_t", "", ['expires' => time() + 100]);
         $_SESSION["user_info"] = null;
         $_SESSION["login_data"] = [
             "token" => null,
@@ -198,7 +200,7 @@ class Users {
         return null;
     }
 
-    public static function createHwInfo() {
+    public static function createHwInfo(): int {
         return -1;
         //
         //
@@ -289,13 +291,13 @@ class Users {
             }
         }
 
-        return new self($user_id);
+        return new self((int)$user_id);
     }
 
     /**
      * @throws ValidationException
      */
-    function update($attrname, $value) {
+    public function update($attrname, $value): bool {
         $attrType = Users::getAttributeManager()->get($attrname);
 
         if (!$attrType->canSave($value)) throw new \API\Exceptions\ValidationException(Users::getAttributeManager()->get($attrname)->getLastError(), 0);

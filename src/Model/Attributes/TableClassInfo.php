@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Model;
 
 class TableClassInfo {
@@ -7,25 +9,23 @@ class TableClassInfo {
     const LANG_TABLE_PARENT_ID_COLUMN_NAME = "parent_id";
     const LANG_TABLE_ID_COLUMN_NAME = "id";
 
-    private $table;
-
     public function getTableName() {
         return $this->table;
     }
 
-    public function getTableLangName() {
+    public function getTableLangName(): string {
         return $this->table . self::LANG_TABLE_PREFIX;
     }
 
-    public function getColumnNameParentId() {
+    public function getColumnNameParentId(): string {
         return self::LANG_TABLE_PARENT_ID_COLUMN_NAME;
     }
 
-    public function getColumnNameId() {
+    public function getColumnNameId(): string {
         return self::LANG_TABLE_ID_COLUMN_NAME;
     }
 
-    public function __construct(string $tableName) {
-        $this->table = $tableName;
+    public function __construct(private readonly string $table)
+    {
     }
 }

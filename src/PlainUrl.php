@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 
@@ -7,14 +9,14 @@ final class PlainUrl {
     /**
      * @var PlainUrlToken[]
      */
-    private $tokens = [];
+    private array $tokens = [];
     private $original;
-    private $original_plain;
+    private readonly string $original_plain;
     private $query;
     private $fragment;
-    private $contains_empty_token = false;
+    private bool $contains_empty_token = false;
 
-    private static $groups = [];
+    private static array $groups = [];
 
 
     /**
@@ -39,7 +41,7 @@ final class PlainUrl {
     public function tokens($in_groups = false): array {
         $toks = [];
 
-        $this->each(function ($t) use(&$toks) {
+        $this->each(function ($t) use(&$toks): void {
             $toks[] = $t;
         }, $in_groups);
 
@@ -93,11 +95,11 @@ final class PlainUrl {
     /**
      * Vratí token
      * @param string $token
-     * @param array|string|false $in_groups
+     * @param array<string>|string|bool $in_groups
      * @return PlainUrlToken|null
      */
-    public function get(string $token, $in_groups = false) {
-        $tok = $this->each(function($t) use ($token) { if ($t->token() == $token) return false; return true; }, $in_groups);
+    public function get(string $token, $in_groups = false): ?\API\PlainUrlToken {
+        $tok = $this->each(function($t) use ($token): bool { if ($t->token() == $token) return false; return true; }, $in_groups);
         if (empty($tok)) return null;
         else {
             return $tok->token() === $token ? $tok : null;
@@ -110,9 +112,9 @@ final class PlainUrl {
      * @param array|string|false $in_groups
      * @return PlainUrlToken|null
      */
-    public function first($in_groups = false) {
+    public function first($in_groups = false): ?\API\PlainUrlToken {
         if (empty($this->tokens)) return null;
-        return $this->each(function() { return false; }, $in_groups);
+        return $this->each(fn(): false => false, $in_groups);
     }
 
     /**
@@ -121,9 +123,9 @@ final class PlainUrl {
      * @param array|string|false $in_groups
      * @return PlainUrlToken|null
      */
-    public function last($in_groups = false) {
+    public function last($in_groups = false): ?\API\PlainUrlToken {
         if (empty($this->tokens)) return null;
-        return $this->each(function() {}, $in_groups);
+        return $this->each(function(): void {}, $in_groups);
     }
 
     /**
@@ -135,7 +137,7 @@ final class PlainUrl {
      */
     public function next(PlainUrlToken $token, $in_groups = false): ?PlainUrlToken {
         if (empty($this->tokens)) return null;
-        return $this->each(function() {return false;}, $in_groups, $token);
+        return $this->each(fn(): false => false, $in_groups, $token);
     }
 
     /**
@@ -148,7 +150,7 @@ final class PlainUrl {
     public function afterTokens(PlainUrlToken $token, $in_groups = false): array {
         $toks = [];
 
-        $this->each(function ($t) use(&$toks) {
+        $this->each(function ($t) use(&$toks): void {
             $toks[] = $t;
         }, $in_groups, $token);
 
@@ -165,7 +167,7 @@ final class PlainUrl {
     public function afterUrl(?PlainUrlToken $token, $in_groups = false, bool $withQuery = true, bool $withFragment = true): ?string {
         $url = "/";
 
-        $this->each(function ($t) use (&$url) {
+        $this->each(function ($t) use (&$url): void {
             $url .= $t->token() . "/";
         }, $in_groups, $token);
 
@@ -182,13 +184,13 @@ final class PlainUrl {
     public function each(callable $callback, $in_groups = false, ?PlainUrlToken $starsFrom = null): ?PlainUrlToken {
         $last = null;
         $check_groups = false;
-        $checked_method = function ($m) { return true; };
+        $checked_method = (fn($m): true => true);
         if (!empty($in_groups)) {
             $check_groups = true;
 
             if (is_string($in_groups)) {
                 $not_in = PlainUrl::updateGroupName($in_groups);
-                $checked_method = function ($token) use ($not_in, $in_groups) {
+                $checked_method = function ($token) use ($not_in, $in_groups): bool {
                     if ($not_in && $token->hasGroup($in_groups)) return false;
                     else if (!$not_in && !$token->hasGroup($in_groups)) return false;
 
@@ -198,7 +200,7 @@ final class PlainUrl {
             }
             else if (is_array($in_groups)) {
                 $group_data = PlainUrl::groupParser($in_groups);
-                $checked_method = function ($token) use ($group_data) {
+                $checked_method = function (\API\PlainUrlToken $token) use ($group_data): bool {
                     if ($token->hasAnyGroups($group_data["not_in"])) return false;
                     else if (!$token->hasAllGroups($group_data["in"])) return false;
 
@@ -235,7 +237,7 @@ final class PlainUrl {
         return $this->contains_empty_token;
     }
 
-    public function redirectWithoutSlashByToken(string $token) {
+    public function redirectWithoutSlashByToken(string $token): void {
         $t = $this->get($token, true);
         $url = self::addSlashEnd($this->original);
 
@@ -280,7 +282,7 @@ final class PlainUrl {
      * @return bool
      */
     private static function updateGroupName(string &$grp): bool {
-        if (\Nette\Utils\Strings::startsWith($grp, "!")) {
+        if (\str_starts_with($grp, "!")) {
             $grp = \Nette\Utils\Strings::substring($grp, 1);
             return true;
         }
@@ -293,7 +295,7 @@ final class PlainUrl {
      * Provede přesměrování na stejnou adresu, ale s lomítkem na konci
      * @return void
      */
-    public function redirectAddSlash() {
+    public function redirectAddSlash(): void {
         $t = $this->last();
         $url = $this->appendQueryFragment(self::addSlashEnd($this->original_plain));
 
@@ -307,20 +309,10 @@ final class PlainUrl {
     }
 
     /**
-     * Puvodni nazev metody redirectAddSlash(), ponechano kvuli zpetne kompatibilite
-     * @deprecated pouzijte redirectAddSlash()
-     * @return void
-     */
-    public function redirectWithoutSlash() {
-        \API\Utils\Deprecation::trigger("PlainUrl::redirectWithoutSlash() - pouzijte redirectAddSlash()");
-        $this->redirectAddSlash();
-    }
-
-    /**
      * Provede přesměrování na stejnou adresu, ale odebere lomitko na konci
      * @return void
      */
-    public function redirectRemoveSlash() {
+    public function redirectRemoveSlash(): void {
         $t = $this->last();
         $url = $this->appendQueryFragment($this->original_plain);
         $url = rtrim($url, "/");
@@ -334,7 +326,7 @@ final class PlainUrl {
         }
     }
 
-    private function appendQueryFragment(?string $url, bool $withQuery = true, bool $withFragment = true) {
+    private function appendQueryFragment(?string $url, bool $withQuery = true, bool $withFragment = true): ?string {
         if (empty($url)) return $url;
         if ($withQuery && !empty($this->query)) $url .= "?" . $this->query;
         if ($withFragment && !empty($this->fragment)) $url .= "#" . $this->fragment;
@@ -352,7 +344,7 @@ final class PlainUrl {
     public function url($in_groups = false, bool $withQuery = true, bool $withFragment = true): ?string {
         $url = "/";
 
-        $this->each(function ($t) use (&$url) {
+        $this->each(function ($t) use (&$url): void {
             $url .= $t->token() . "/";
         }, $in_groups);
 
@@ -369,7 +361,7 @@ final class PlainUrl {
     public function firstUrl($in_groups = false, bool $withQuery = true, bool $withFragment = true): string {
         $url = "/";
 
-        $this->each(function ($t) use (&$url) {
+        $this->each(function ($t) use (&$url): false {
             $url .= $t->token() . "/";
             return false;
         }, $in_groups);
@@ -382,7 +374,7 @@ final class PlainUrl {
      * @param string $url
      * @return void
      */
-    public static function redirectTo(string $url) {
+    public static function redirectTo(string $url): never {
         $url = self::addSlashEnd($url);
         header("Location: {$url}");
         exit();
@@ -393,7 +385,7 @@ final class PlainUrl {
      * @param string $url
      * @return void
      */
-    public static function permanentlyRedirectTo(string $url) {
+    public static function permanentlyRedirectTo(string $url): void {
         // lomitko patri na konec cesty - pred ?query a #fragment (jinak /stranka?a=1 -> /stranka?a=1/)
         $suffix = "";
         if (preg_match('/^([^?#]*)([?#].*)$/s', $url, $m)) {
@@ -412,8 +404,8 @@ final class PlainUrl {
      * @param bool $single_group Pokud je true, znamena, ze každy token může být jen členem jedne skupiny
      */
     public function __construct($custom_url = null, bool $single_group = true) {
-        if (empty($custom_url)) $p_url = $_SERVER['REQUEST_URI'];
-        $p_url = $custom_url;
+        // bez adresy aktualni pozadavek (drive se REQUEST_URI hned prepsalo hodnotou null)
+        $p_url = empty($custom_url) ? (string)($_SERVER['REQUEST_URI'] ?? "/") : (string)$custom_url;
 
         $parsed_url = parse_url($p_url);
         $this->query = empty($parsed_url["query"]) ? null : $parsed_url["query"];
@@ -427,7 +419,7 @@ final class PlainUrl {
         $token_count = 0;
         $no_group_token = 0;
 
-        $iter = function($slash_at_end) use(&$token, &$token_count, &$no_group_token, $single_group) {
+        $iter = function($slash_at_end) use(&$token, &$token_count, &$no_group_token, $single_group): void {
             $grps = [];
             $custom_data = [];
 
@@ -475,7 +467,7 @@ final class PlainUrl {
     }
 
     private static function addSlashEnd($url) {
-        $endsWith = function($haystack, $needle) {
+        $endsWith = function($haystack, $needle): bool {
             $length = strlen($needle);
             if ($length == 0) {
                 return true;
@@ -488,7 +480,7 @@ final class PlainUrl {
         else return $url . "/";
     }
 
-    private static function isTokenType(string $name, $token) {
+    private static function isTokenType(string $name, $token): void {
         $name = mb_strtolower($name, "utf8");
 
     }
@@ -505,8 +497,8 @@ final class PlainUrl {
      *  - Format funkce function (string $token, int $position|pozice v tokenech, int $no_grp_position|pozice v tokenech, ktere nemaji skupinu, array &custom_data|asociativni pole předané tokenu a přistupné)
      * @return void
      */
-    public static function registerTokenTypeChecker(string $name, callable $fnc_checker) {
-        if (\Nette\Utils\Strings::startsWith($name, "!")) throw new \InvalidArgumentException("Name hasn't starts with !");
+    public static function registerTokenTypeChecker(string $name, callable $fnc_checker): void {
+        if (\str_starts_with($name, "!")) throw new \InvalidArgumentException("Name hasn't starts with !");
         $name = mb_strtolower($name, "utf8");
 
         if (!empty(PlainUrl::$groups[$name])) {

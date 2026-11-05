@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Event;
 
 final class EventManager implements \API\Event\EventManagerInterface
 {
-    private $listeners = [];
+    private array $listeners = [];
 
     public function attach(string $event, callable $callback, int $priority = 0, bool $once = false): bool {
         $this->detach($event, $callback);
@@ -16,9 +18,8 @@ final class EventManager implements \API\Event\EventManagerInterface
             "once" => $once
         ];
 
-        usort($this->listeners, function ($a, $b){
-            return $a["priority"] < $b["priority"];
-        });
+        // vyssi priorita drive (drive porovnani vracelo bool - PHP 8 ho bere jako zastarale a radi nespolehlive)
+        usort($this->listeners, fn(array $a, array $b): int => $b["priority"] <=> $a["priority"]);
 
         return true;
     }
@@ -34,7 +35,7 @@ final class EventManager implements \API\Event\EventManagerInterface
         return false;
     }
 
-    public function clearListeners(string $event) {
+    public function clearListeners(string $event): void {
         foreach($this->listeners as $key=>$listener) {
             if ($listener["event"] == $event) {
                 unset($this->listeners[$key]);

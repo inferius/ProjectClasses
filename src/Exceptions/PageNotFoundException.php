@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Exceptions;
 /**
  * Vyjimka, ktera se zavola v php souboru sablony, zapricni, ze zobrazi 404
@@ -12,8 +14,8 @@ class PageNotFoundException extends BaseException {
     }
 
     // custom string representation of object
-    public function __toString() {
-        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
+    public function __toString(): string {
+        return self::class . ": [{$this->code}]: {$this->message}\n";
     }
 
 }

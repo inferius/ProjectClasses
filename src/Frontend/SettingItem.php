@@ -1,22 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Frontend;
 
 class SettingItem {
-    private $name;
-    private $attrname;
-    private $type;
-    private $value;
-    private $num_type;
+    private static array $input_type = [ "number", "number", "text", "textarea", "datetime", "textarea", "checkbox" ];
 
-    private static $input_type = [ "number", "number", "text", "textarea", "datetime", "textarea", "checkbox" ];
-
-    public function __construct($type, $value, $attrname, $name, $num_type) {
-        $this->type = $type;
-        $this->value = $value;
-        $this->attrname = $attrname;
-        $this->name = $name;
-        $this->num_type = $num_type;
+    public function __construct(private $type, private $value, private $attrname, private $name, private $num_type)
+    {
     }
 
     /** @return string  */
@@ -34,7 +26,7 @@ class SettingItem {
      * @param mixed $value Hodnota atributu
      * @return void
      */
-    public function setValue($value) {
+    public function setValue($value): void {
 
         $res = \API\Configurator::$connection->query("UPDATE frontend_setting SET ", [ $this->type => $value ], " WHERE text_id = ?", $this->attrname);
         $affected_rows = $res->getRowCount();
@@ -80,29 +72,25 @@ class SettingItem {
     public function toFormat($format = null, ...$args) {
         if ($this->type == "datetime_val") {
             if (is_string($format)) {
-                switch (strtolower($format)) {
-                    case "sql":
-                        return $this->value;
-                    case "timestamp":
-                        return strtotime($this->value);
-                    case "js_timestamp":
-                        return strtotime($this->value) * 1000;
-                    default:
-                        return date($format, strtotime($this->value));
-                }
+                return match (strtolower($format)) {
+                    "sql" => $this->value,
+                    "timestamp" => \API\Utils\Value::toTimestamp($this->value),
+                    "js_timestamp" => ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? null : $ts * 1000,
+                    default => ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? "" : date($format, $ts),
+                };
             }
             else {
                 if (class_exists("IntlDateFormatter")) {
-                    @list($dateFormatter, $timeFormatter) = $args + [ \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT ];
+                    @[$dateFormatter, $timeFormatter] = $args + [ \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT ];
 
-                    $formatter = new \IntlDateFormatter(\API\Configurator::$locale, $dateFormatter, $timeFormatter);
+                    $formatter = new \IntlDateFormatter(\API\Configurator::locale(), $dateFormatter, $timeFormatter);
                     if ($formatter === null)
                         throw new \API\Exceptions\InvalidConfigException(intl_get_error_message());
 
                     return $formatter->getPattern();
                 }
                 else {
-                    return date("j. n. Y H:i:s", strtotime($this->value));
+                    return ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? "" : date("j. n. Y H:i:s", $ts);
                 }
             }
         }
@@ -113,9 +101,9 @@ class SettingItem {
                     $style = $format;
                 }
 
-                @list($attributes, $pattern, $symbols, $textAttributes) = $args + [ null, null, null, null];
+                @[$attributes, $pattern, $symbols, $textAttributes] = $args + [ null, null, null, null];
 
-                $f = new \NumberFormatter(\API\Configurator::$locale, $style);
+                $f = new \NumberFormatter(\API\Configurator::locale(), $style);
 
                 if (is_array($attributes)) {
                     foreach ($attributes as $attrName => $val) $f->setAttribute($attrName, $val);
@@ -131,12 +119,12 @@ class SettingItem {
                     foreach ($textAttributes as $attrName => $val) $f->setTextAttribute($attrName, $val);
                 }
 
-                return $f->format($this->value);
+                return $f->format(\API\Utils\Value::toNumber($this->value));
             }
             else {
-                list($decimal_count, $decimal_separator, $thousands_separator) = $args + [0, ',', ' '];
+                [$decimal_count, $decimal_separator, $thousands_separator] = $args + [0, ',', ' '];
 
-                return number_format($this->value, $decimal_count, $decimal_separator, $thousands_separator);
+                return number_format(\API\Utils\Value::toNumber($this->value), (int)$decimal_count, (string)$decimal_separator, (string)$thousands_separator);
             }
         }
 

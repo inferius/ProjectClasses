@@ -1,25 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class DataReaderOrder {
-    private static $orderFnc = [ "rand()" ];
-
-    /** @var \API\Model\ClassDescription */
-    private $classInfo;
+    private static array $orderFnc = [ "rand()" ];
 
     /** @var array $order */
     private $order = [];
 
-    public function __construct($classInfo) {
-        $this->classInfo = $classInfo;
+    /**
+     * @param \API\Model\ClassDescription $classInfo
+     */
+    public function __construct(private $classInfo)
+    {
     }
 
-    public function addOrder(string $attrName, ?string $order = null) {
+    public function addOrder(string $attrName, ?string $order = null): void {
         $this->order[] = [ "attrName" => $attrName, "direction" => $order ];
     }
 
-    public function removeOrder(string $attrName) {
+    public function removeOrder(string $attrName): void {
         $this->clear();
         foreach ($this->order as $ord) {
             if ($ord["attrName"] == $attrName) continue;
@@ -27,11 +29,11 @@ class DataReaderOrder {
         }
     }
 
-    public function setOrder(array $order) {
+    public function setOrder(array $order): void {
         $this->order = $order;
     }
 
-    public function clear() {
+    public function clear(): void {
         $this->setOrder([]);
     }
 

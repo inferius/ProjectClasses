@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Functions;
 
 class FileInfoData {
-    private $originalFile;
+    private ?string $originalFile = null;
 
     //#[ArrayShape(['dirname' => 'string', 'basename' => 'string', 'extension' => 'string', 'filename' => 'string'])]
-    private $fileInfo;
+    private ?array $fileInfo = null;
     private $transformedFile;
     private $postfix;
     private $targetExtension;
@@ -42,11 +44,11 @@ class FileInfoData {
         return $this->transformedFile;
     }
 
-    public function switchToPng() {
+    public function switchToPng(): void {
         $this->targetExtension = "png";
     }
 
-    public function switchToJpeg() {
+    public function switchToJpeg(): void {
         $this->targetExtension = "jpg";
     }
 
@@ -54,16 +56,16 @@ class FileInfoData {
      * @param $file
      * @return $this
      */
-    public function transform($file) {
+    public function transform($file): static {
         $this->transformedFile = $file;
         return $this;
     }
 
-    public function getPath() {
+    public function getPath(): string {
         return "{$this->fileInfo["dirname"]}/{$this->getFileName()}";
     }
 
-    public function getFileName() {
+    public function getFileName(): string {
         $r = $this->fileInfo["filename"];
         if (!empty($this->postfix)) $r.= "_{$this->postfix}";
         $r .= ".{$this->targetExtension}";
@@ -71,11 +73,11 @@ class FileInfoData {
         return $r;
     }
 
-    public function setSaveFunction($fnc) {
+    public function setSaveFunction($fnc): void {
         $this->saveFunction = $fnc;
     }
 
-    public function save() {
+    public function save(): void {
         if (is_callable($this->saveFunction)) {
             call_user_func($this->saveFunction, $this->transformedFile, $this->getPath());
         }

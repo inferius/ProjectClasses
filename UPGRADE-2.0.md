@@ -13,6 +13,18 @@ Tenhle soubor rika projektum, co se zmeni a co udelat. Doplnuje se s kazdou zmen
   z frameworku; funkce frameworku zustanou jako obaly se stejnymi signaturami).
 - Uzivatel v session jen jako id a token (ne cely objekt `Users`).
 - Klice memcache s verzi knihovny.
+- `API\Frontend\Head` - titulek, meta, canonical, hreflang a JSON-LD do `<head>` z sablon i modulu
+  (kostra webu vypise `{\API\Frontend\Head::render()|noescape}` v hlavicce).
+
+## Co se zmenilo v chovani
+
+| Co | Ve 2.0 | Drive |
+| --- | --- | --- |
+| `new BaseObject($trida, $id)` | id `int`, ciselny retezec nebo prazdna hodnota; neciselny retezec = `ObjectNotFoundException` | retezec se poslal do SQL, objekt byl prazdny |
+| `BaseObject::getId()` | `?int`, u noveho objektu null | `int`, u noveho objektu TypeError |
+| `BaseObject::getCreated()` | `DateTime` ze sloupce `created` | `false` (spatny format) |
+| `Localization::getText()` | `?string`, chybejici preklad null | null nebo false (memcache) |
+| klice memcache popisu trid | `pc2:[prefix:]ModelClassDescription...` | bez verze |
 
 ## Co se odstrani (v 1.8 hlasi E_USER_DEPRECATED)
 

@@ -7,13 +7,13 @@ final class PlainUrlTest extends TestCase {
 
     /** @var \API\PlainUrl $pu */
     private $pu;
-    private $prepared = false;
+    private bool $prepared = false;
 
-    public function prepareData() {
+    public function prepareData(): void {
 
 
         //$this->pu = new \API\PlainUrl("/en/9.5/writing-tests-for-phpunit/testurl");
-        @\API\PlainUrl::registerTokenTypeChecker("language", function ($token, $position, $no_grp_position) {
+        @\API\PlainUrl::registerTokenTypeChecker("language", function ($token, $position, $no_grp_position): bool {
             $accept_language = [ "en", "cs", "cs_CZ", "en_US" ];
             if ($position === 0) {
                 return in_array($token, $accept_language);
@@ -23,8 +23,8 @@ final class PlainUrlTest extends TestCase {
             }
         });
 
-        @\API\PlainUrl::registerTokenTypeChecker("token", function ($token, $position, $no_grp_position, &$custom_data) {
-            if (\Nette\Utils\Strings::startsWith($token, "token-")) {
+        @\API\PlainUrl::registerTokenTypeChecker("token", function ($token, $position, $no_grp_position, &$custom_data): bool {
+            if (\str_starts_with($token, "token-")) {
                 $custom_data = [
                     "token" => \Nette\Utils\Strings::after($token, "-")
                 ];
@@ -35,7 +35,7 @@ final class PlainUrlTest extends TestCase {
             return false;
         });
 
-        @\API\PlainUrl::registerTokenTypeChecker("version", function ($token, $position, $no_grp_position, &$custom_data) {
+        @\API\PlainUrl::registerTokenTypeChecker("version", function ($token, $position, $no_grp_position, array &$custom_data): bool {
             $version_regex = "/^v?(?<main>[0-9]+)(?:\.(?<sub>[0-9]+))?$/mi";
             if ($no_grp_position === 0 && preg_match($version_regex, $token, $matches)) {
 
@@ -59,7 +59,7 @@ final class PlainUrlTest extends TestCase {
         });
     }
 
-    public function dataProvider(): array {
+    public static function dataProvider(): array {
         return [
             "has lang groups-1" => [ "language", "/en/9/writing-tests-for-phpunit/testurl", true ],
             "has lang groups-2" => [ "language", "/cs/9/writing-tests-for-phpunit/testurl", true ],
@@ -89,7 +89,7 @@ final class PlainUrlTest extends TestCase {
         ];
     }
 
-    public function dataFirstProvider(): array {
+    public static function dataFirstProvider(): array {
         return [
             "has lang groups" => [ [ "language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "en" ],
             "has !lang groups" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "9.5" ],
@@ -99,7 +99,7 @@ final class PlainUrlTest extends TestCase {
         ];
     }
 
-    public function dataUrlProvider(): array {
+    public static function dataUrlProvider(): array {
         return [
             "has lang groups" => [ [ "language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "/en/" ],
             "has no lang groups-1" => [ [ "!language" ], "/en/9.5/writing-tests-for-phpunit/testurl", "/9.5/writing-tests-for-phpunit/testurl/" ],
@@ -123,14 +123,14 @@ final class PlainUrlTest extends TestCase {
         ];
     }
 
-    public function dataNextUrlProvider(): array {
+    public static function dataNextUrlProvider(): array {
         return [
             "next-1" => [ [ "token" ], "/en/9.5/token-123654/ahoj/jak/", "ahoj" ],
             "next-2" => [ [ "version" ], "/en/9.5/token-123654/ahoj/jak/", "token-123654" ],
         ];
     }
 
-    public function dataAfterUrlProvider(): array {
+    public static function dataAfterUrlProvider(): array {
         return [
             "next-1" => [ [ "token" ], "/en/9.5/token-123654/ahoj/jak/", "/ahoj/jak/" ],
             "next-2" => [ [ "version" ], "/en/9.5/token-123654/ahoj/jak/", "/token-123654/ahoj/jak/" ],
@@ -139,7 +139,7 @@ final class PlainUrlTest extends TestCase {
         ];
     }
 
-    public function dataCustomDataProvider(): array {
+    public static function dataCustomDataProvider(): array {
         return [
             "has token groups" => [ [ "token" ], "/en/9.5/writing-tests-for-phpunit/token-123456987", "token", "123456987" ],
 
@@ -152,39 +152,31 @@ final class PlainUrlTest extends TestCase {
         ];
     }
 
-    /**
-     * @dataProvider dataProvider
-     */
-    public function testContainsGroup($group, string $url, bool $expected) {
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider')]
+    public function testContainsGroup(string|array $group, string $url, bool $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
         $this->assertSame($expected, $pu->containsGroups($group));
     }
 
-    /**
-     * @dataProvider dataFirstProvider
-     */
-    public function testFirst($groups, string $url, string $expected) {
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataFirstProvider')]
+    public function testFirst(string|array $groups, string $url, string $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
 
         $this->assertSame($expected, $pu->first($groups)->token());
     }
 
-    /**
-     * @dataProvider dataUrlProvider
-     */
-    public function testUrl($groups, string $url, string $expected) {
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataUrlProvider')]
+    public function testUrl(string|bool|array|null $groups, string $url, string $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
 
         $this->assertSame($expected, $pu->url($groups));
     }
 
-    /**
-     * @dataProvider dataNextUrlProvider
-     */
-    public function testNextUrl($groups, string $url, string $expected) {
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataNextUrlProvider')]
+    public function testNextUrl(array $groups, string $url, string $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
 
@@ -192,21 +184,17 @@ final class PlainUrlTest extends TestCase {
     }
 
 
-    /**
-     * @dataProvider dataAfterUrlProvider
-     */
-    public function testAfterUrl($groups, string $url, string $expected) {
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataAfterUrlProvider')]
+    public function testAfterUrl(?array $groups, string $url, string $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
 
         $this->assertSame($expected, $pu->afterUrl($pu->first($groups)));
     }
 
-    /**
-     * @dataProvider dataCustomDataProvider
-     * @depends testFirst
-     */
-    public function testCustomData($groups, string $url, string $custom_key, string $expected) {
+    #[\PHPUnit\Framework\Attributes\Depends('testFirst')]
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataCustomDataProvider')]
+    public function testCustomData(string|array $groups, string $url, string $custom_key, string $expected): void {
         $this->prepareData();
         $pu = new \API\PlainUrl($url);
 

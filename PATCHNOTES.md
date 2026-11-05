@@ -4,6 +4,50 @@ Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmeni
 Projekty: EasyAdmin (administrace a kostra webu; administrace projektu dostavaji knihovnu s vydanim jadra),
 anoda (admin + web), cestadocloudu (admin + web), lapenna (admin + web). mytimi2 knihovnu nepouziva.
 
+## v2.0.0 - ve vyvoji (master; opravy 1.x ve vetvi 1.x)
+
+Prechod a kontrakty: [UPGRADE-2.0.md](UPGRADE-2.0.md). Hotovy zaklad (alpha):
+
+- PHP 8.3+ (`composer.json`), `nette/database ^3.2`, `nette/utils ^4.0`, `imagine/imagine ^1.3`.
+- `declare(strict_types=1)` ve vsech souborech, typy z Rectoru (sada PHP 8.3 a typove deklarace) rucne
+  zkontrolovane, `readonly` v modelu, `#[\Override]`, typovane konstanty. PHPStan uroven 5 bez chyb typu (zbyva
+  ~50 nalezu mrtveho kodu a zbytecnych kontrol), cil uroven 6.
+- Globalni `Globals`, `Localization`, `L`, `ArrayTokenScanner` jsou v `API\`, `UploadException`
+  v `API\Exceptions\`; stare nazvy funguji pres alias (`src/aliases.php`, composer "files").
+- Odstraneno: `PlainUrl::redirectWithoutSlash()`, `PlainUrlToken::slash_at_end()`, `PageTemplate::load_css_js()`,
+  `DataReader::getClassDataInner2()`, tridy `API\Frontend\DataReader`, `API\Model\DataLoader`,
+  `API\DateTimeConfigurator`, `API\FunctionLine`.
+- `BaseObject`: id `int|string|null` (ciselny retezec se prevede, neciselny = `ObjectNotFoundException`),
+  `getId(): ?int` (u noveho objektu null, drive TypeError), `getCreated()` a `edited` jako DateTime ze sloupce
+  datetime (drive false), `getObjectByAttr()` vraci `static` a lokalizovany atribut hleda v jazykove tabulce
+  (drive v hlavni - dotaz padal) a u neznameho atributu vraci null, jazyk bez `Configurator::$currentLanguageId`
+  = `BaseObject::DEFAULT_LANGUAGE` (2), id po vlozeni je int.
+- `Configurator`: typy (`?int $currentLanguageId`, `?int $editLanguageId`, `?string $locale` + `locale()` s vychozim
+  `DEFAULT_LOCALE` - weby ho plni ze session, kde muze chybet, `array $config`...),
+  spojeni, memcache, presenter a funkce bez nativniho typu (@var). Klice memcache maji verzi:
+  `Configurator::cacheKey()` = `pc2:[prefix:]klic` - popisy trid z 1.x se do typovanych trid nerozbaluji.
+- `Localization::getText()` vraci `?string` (chybejici preklad null, drive i false z memcache),
+  `getPlainText()` u chybejiciho prekladu "", parametry `@jmeno` prevadi na retezec (cislo drive TypeError).
+- Opravy chyb, ktere byly i v 1.x: `PlainUrlToken::groups()` mel navratovy typ int a vracel pole (TypeError),
+  `Functions\Argument` bez `Configurator::$replaceTextFnc` volal nedefinovanou promennou, poradi posluchacu
+  udalosti (`EventManager`) radil porovnavac vracejici bool, `Users::createUser()` a `BaseObject::save()`
+  predavaly id z `getInsertId()` jako retezec, `FunctionCore::setMemCache()` predaval null do Memcache::set.
+- Nove `API\Frontend\Head`: znacky do `<head>` sbirane behem vykreslovani (sablony, moduly) a vypsane jednim
+  volanim - `title()`, `meta()`, `property()`, `canonical()`, `alternate()` (hreflang), `link()`, `jsonLd()`, `raw()`,
+  `remove()`, `has()`, `render()`, `print()`, `reset()`. Jedna hodnota na klic, vyhraje vyssi priorita
+  (`PRIORITY_DEFAULT` kostra, `PRIORITY_PAGE` stranka, `PRIORITY_MODULE` modul), pri shode posledni. Escapuje
+  knihovna, JSON-LD s `JSON_HEX_TAG`. Pozadavek vlakna jadra pro SEO hlavicky stranek modulu (Eshop).
+- Code review 2.0: s `strict_types` uz PHP samo neprevede hodnoty z DB pro vestavene funkce - novy `API\Utils\Value`
+  (`toNumber()`, `toTimestamp()`) v `toFormat()` u `NumberAttributeValue`, `DateTimeAttributeValue` a `SettingItem`
+  (DECIMAL jako retezec do `number_format()`, Nette DateTime do `strtotime()` - jinak TypeError; prazdne datum = "").
+  Neznama trida v `Model\ClassDescription::get()` = `InvalidArgumentException` s nazvem tridy (drive TypeError).
+  `new PlainUrl()` bez adresy bere `REQUEST_URI` (drive se hned prepsalo null). `PostprocessData::getAllowedMimes()`
+  testovala nedefinovanou promennou a vracela vzdy [] (povolene MIME typy se nepouzily). `UploadException` prevadi kod na int.
+- Testy: PHPUnit 11 (`tests/*Test.php`), 108 testu bez databaze (PHP 8.3 i 8.5).
+
+Zbyva do 2.0.0: typy vsech parametru (PHPStan 6), opravneni v knihovne, `DataReader` misto `getFullDataFromClass`,
+`Users` v session jen id a token, `rector-2.0.php` pro projekty, integracni testy s MariaDB a CI.
+
 ## v1.8.0 - 2026-11-05
 
 Zpetne kompatibilni priprava na 2.0 (PHP 8.3, typy, opravneni v knihovne) - co 2.0 zmeni a cim to nahradit:

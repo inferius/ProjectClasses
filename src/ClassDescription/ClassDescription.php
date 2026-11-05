@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 /**
@@ -80,7 +82,7 @@ function getClassDescription($class_text_id) {
     return $data;
 }
 
-function getEnumDescription($enum_txt_id) {
+function getEnumDescription($enum_txt_id): array {
     global $connection;
 
     $enum_info = \API\Configurator::$connection->fetch("SELECT * FROM model_enums WHERE text_id = ?", $enum_txt_id);
@@ -95,7 +97,7 @@ function getEnumDescription($enum_txt_id) {
     ];
 }
 
-function getFilePostprocess($c_txt_id, $a_txt_id) {
+function getFilePostprocess($c_txt_id, $a_txt_id): ?\Nette\Database\Row {
     global $connection;
 
     //return \API\Configurator::$connection->fetchAll("SELECT fp.text_id, fp.method_body FROM model_classes_attrs_f_posprocess AS mcap INNER JOIN files_postprocess AS fp ON fp.text_id = mcap.pp_txt_id WHERE mcap.a_txt_id = ? AND mcap.c_txt_id = ?", $a_txt_id, $c_txt_id);

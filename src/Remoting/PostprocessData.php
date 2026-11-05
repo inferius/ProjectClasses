@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class PostprocessData {
@@ -20,7 +22,7 @@ class PostprocessData {
         return $this->data;
     }
 
-    private function getAttribute($name) {
+    private function getAttribute(string $name) {
         if (!empty($this->data)) return $this->data[$name];
         return null;
     }
@@ -36,7 +38,7 @@ class PostprocessData {
     /**
      * @return string[]
      */
-    public function getAllowedExtensions() {
+    public function getAllowedExtensions(): array {
         $allowed_ext = $this->getAttribute("allowed_extension");
         if (empty($allowed_ext)) return [];
 
@@ -54,14 +56,15 @@ class PostprocessData {
     /**
      * @return string[]
      */
-    public function getAllowedMimes() {
+    public function getAllowedMimes(): array {
         $mimes = $this->getAttribute("allowed_mime");
-        if (empty($allowed_ext)) return [];
+        // drive se testovala nedefinovana $allowed_ext - povolene MIME typy se nikdy nepouzily
+        if (empty($mimes)) return [];
 
         return explode(",", $mimes);
     }
 
-    public function keepOriginal() {
+    public function keepOriginal(): bool {
         return boolval($this->getAttribute("keep_original"));
     }
 
@@ -81,9 +84,7 @@ class PostprocessData {
     public function processMethods($file, $target = null) {
         if (empty($this->getMethodBody())) return $file;
 
-        $lines = array_map(function($item) {
-            return \API\Functions\BaseFunction::parse(str_replace("\r", "", $item));
-        }, explode("\n", $this->getMethodBody()));
+        $lines = array_map(fn($item) => \API\Functions\BaseFunction::parse(str_replace("\r", "", $item)), explode("\n", $this->getMethodBody()));
 
         $updated_file = $file;
         foreach ($lines as $item) {

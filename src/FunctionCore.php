@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class FunctionCore {
-    public static function inMemCache($cache_key) {
+    public static function inMemCache($cache_key): bool {
         if (!empty(\API\Configurator::$memcache)) {
             $m = \API\Configurator::$memcache->get($cache_key);
             return !empty($m);
@@ -21,9 +23,9 @@ class FunctionCore {
         return null;
     }
 
-    public static function setMemCache($cache_key, $value, $expirated = null) {
+    public static function setMemCache($cache_key, $value, $expirated = null): void {
         if (!empty(\API\Configurator::$memcache)) {
-            \API\Configurator::$memcache->set($cache_key, $value, null, $expirated);
+            \API\Configurator::$memcache->set($cache_key, $value, 0, (int)$expirated);
         }
     }
 
@@ -37,7 +39,7 @@ class FunctionCore {
             "custom_sizes" => [],
         ];
 
-        list("class_name" => $class_names, "width" => $width, "custom_sizes" => $custom_sizes) = $img_config + $default_data;
+        ["class_name" => $class_names, "width" => $width, "custom_sizes" => $custom_sizes] = $img_config + $default_data;
 
         $key = "uploaded_file_picture_html:$id";
 
@@ -102,7 +104,7 @@ class FunctionCore {
         return $p;
     }
 
-    public static function getImageMime($ext) {
+    public static function getImageMime(string $ext): string {
         $arr = [
             'avif' => 'image/avif',
             'png' => 'image/png',

@@ -1,0 +1,23 @@
+# vendor/bin/phpstan analyse (vyvoj knihovny)
+# Uroven 5: chyby typu opravene, zbyva ~50 nalezu mrtveho kodu a zbytecnych kontrol (uklid).
+# Cil 2.0 je uroven 6 (typy vsech parametru a navratu) - doplnuje se po castech.
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        analyse:
+            # DataReader se prepisuje v kroku rozhodnuti 10 (prevezme getFullDataFromClass z frameworku)
+            - src/Remoting/DataReader.php
+    universalObjectCratesClasses:
+        - Nette\Database\Row
+        - Nette\Database\Table\ActiveRow
+    ignoreErrors:
+        # konstanty definuje ArrayTokenScanner::tokenize() pres define() za behu
+        -
+            identifier: constant.notFound
+            path: src/ArrayTokenScanner.php
+        # Latte je volitelna zavislost (suggest)
+        -
+            identifier: class.notFound
+            path: src/FunctionCore.php

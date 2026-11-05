@@ -11,16 +11,16 @@ final class FakeMemcache {
     /** @var string[] */
     public $deleted = [];
 
-    public function get($key) {
+    public function get(string $key) {
         return $this->data[$key] ?? false;
     }
 
-    public function set($key, $value, $flag = null, $expire = null) {
+    public function set(string $key, $value, $flag = null, $expire = null): bool {
         $this->data[$key] = $value;
         return true;
     }
 
-    public function delete($key) {
+    public function delete(string $key): bool {
         $this->deleted[] = $key;
         unset($this->data[$key]);
         return true;

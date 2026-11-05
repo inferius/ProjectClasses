@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Model;
 
 
@@ -20,9 +22,8 @@ class StandardAttribute implements IAttributeInfo {
     private $specification;
 
     /** @var FlagsAttributeInfo $flags; */
-    private $flags;
-    /** @var MethodsAttributeInfo $methods */
-    private $methods;
+    private readonly \API\Model\FlagsAttributeInfo $flags;
+    private readonly \API\Model\MethodsAttributeInfo $methods;
 
     /** @var ?string $special_id */
     private $special_id;
@@ -114,7 +115,7 @@ class StandardAttribute implements IAttributeInfo {
         $this->specification = $spec;
     }
 
-    public function __construct($row_data) {
+    public function __construct(array|\ArrayAccess $row_data) {
         $this->name = $row_data["name"];
         $this->alias = $row_data["attr_alias"];
         $this->type = $row_data["data_type"];

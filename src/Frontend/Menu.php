@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Frontend;
 
 /**
@@ -40,23 +42,23 @@ namespace API\Frontend;
  *   debug         chyby zdroju do errors() misto error_log
  */
 final class Menu {
-    public const TYPES = [ "page", "object", "link", "group", "block", "source_class", "source_sql" ];
-    public const SOURCE_TYPES = [ "source_class", "source_sql" ];
-    public const DEFAULT_LIMIT = 100;
-    public const MAX_LIMIT = 500;
-    private const MAX_DEPTH = 8;
-    private const MAX_NODES = 3000;
-    private const FILTER_OPS = [ "=", "!=", "<", ">", "<=", ">=", "like", "null", "notnull", "in" ];
+    public const array TYPES = [ "page", "object", "link", "group", "block", "source_class", "source_sql" ];
+    public const array SOURCE_TYPES = [ "source_class", "source_sql" ];
+    public const int DEFAULT_LIMIT = 100;
+    public const int MAX_LIMIT = 500;
+    private const int MAX_DEPTH = 8;
+    private const int MAX_NODES = 3000;
+    private const array FILTER_OPS = [ "=", "!=", "<", ">", "<=", ">=", "like", "null", "notnull", "in" ];
 
-    private $ctx;
-    private $errors = [];
-    private $nodes = 0;
-    private $isMaria = null;
+    private array $ctx;
+    private array $errors = [];
+    private int $nodes = 0;
+    private ?bool $isMaria = null;
     /** id cilove polozky => zaznamy zdroju presunute pod ni (override parent) */
-    private $moved = [];
+    private array $moved = [];
     /** id polozek, pod ktere maji prijit presunute zaznamy */
-    private $targets = [];
-    private $trace = [];
+    private array $targets = [];
+    private array $trace = [];
 
     /** Strom menu pro jazyk z kontextu (z cache, kdyz je memcache). Neexistujici menu = []. */
     public static function get(string $menu, array $ctx = []): array {
@@ -69,8 +71,8 @@ final class Menu {
             "lang_id" => \API\Configurator::$currentLanguageId,
             "page" => null,
             "rows" => null,
-            "url" => fn($u) => (string)$u,
-            "file_url" => fn($f) => is_array($f) || $f instanceof \ArrayAccess ? (string)($f["relative_path"] ?? "") : (string)$f,
+            "url" => fn($u): string => (string)$u,
+            "file_url" => fn($f): string => is_array($f) || $f instanceof \ArrayAccess ? (string)($f["relative_path"] ?? "") : (string)$f,
             "lang_prefix" => "",
             "cache" => \API\Configurator::$memcache ?? null,
             "cache_ttl" => 86400,
@@ -105,7 +107,7 @@ final class Menu {
             $byParent[(int)($it["parent_id"] ?? 0)][] = $it;
         }
         foreach ($byParent as &$list) {
-            usort($list, fn($a, $b) => [(int)$a["ord"], (int)$a["id"]] <=> [(int)$b["ord"], (int)$b["id"]]);
+            usort($list, fn(array $a, array $b): int => [(int)$a["ord"], (int)$a["id"]] <=> [(int)$b["ord"], (int)$b["id"]]);
         }
         unset($list);
 
@@ -148,7 +150,7 @@ final class Menu {
         $i = 0;
         foreach ($nodes as &$n) $n["_i"] = $i++;
         unset($n);
-        usort($nodes, fn($a, $b) => [ (int)($a["ord"] ?? 0), $a["_i"] ] <=> [ (int)($b["ord"] ?? 0), $b["_i"] ]);
+        usort($nodes, fn(array $a, array $b): int => [ (int)($a["ord"] ?? 0), $a["_i"] ] <=> [ (int)($b["ord"] ?? 0), $b["_i"] ]);
         foreach ($nodes as &$n) unset($n["_i"]);
         unset($n);
     }
@@ -175,7 +177,7 @@ final class Menu {
 
         $info = [];
         $class = (string)($gb["class"] ?? "");
-        $ids = array_values(array_filter(array_map("intval", array_keys($groups))));
+        $ids = array_values(array_filter(array_map(intval(...), array_keys($groups))));
         if ($class !== "" && $ids) {
             $labelAttrs = self::attrList($gb["label"] ?? "name") ?: [ "name" ];
             $keyAttr = self::attrName($gb["key"] ?? "");
@@ -205,7 +207,7 @@ final class Menu {
             $out[] = $node;
         }
         if (!empty($gb["order"])) {
-            usort($out, fn($a, $b) => [ $a["sort"] === null ? 1 : 0, is_numeric($a["sort"]) ? (float)$a["sort"] : (string)$a["sort"], $a["ord"] ]
+            usort($out, fn(array $a, array $b): int => [ $a["sort"] === null ? 1 : 0, is_numeric($a["sort"]) ? (float)$a["sort"] : (string)$a["sort"], $a["ord"] ]
                 <=> [ $b["sort"] === null ? 1 : 0, is_numeric($b["sort"]) ? (float)$b["sort"] : (string)$b["sort"], $b["ord"] ]);
         }
         foreach ($out as &$g) unset($g["sort"]);
@@ -347,7 +349,7 @@ final class Menu {
             return [ $node ];
         }
         catch (\Throwable $e) {
-            $this->error($id, $e->getMessage() !== "" ? $e->getMessage() : get_class($e) . " (" . basename($e->getFile()) . ":" . $e->getLine() . ")");
+            $this->error($id, $e->getMessage() !== "" ? $e->getMessage() : $e::class . " (" . basename($e->getFile()) . ":" . $e->getLine() . ")");
             return [];
         }
     }
@@ -381,8 +383,8 @@ final class Menu {
 
     /** {$row.sloupec} v textu -> hodnota z radku rodicovskeho zdroje. */
     private function fill(string $text, array $row): string {
-        if ($text === "" || strpos($text, '{$row.') === false) return $text;
-        return preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}/', fn($m) => (string)(is_array($row[$m[1]] ?? null) ? "" : ($row[$m[1]] ?? "")), $text);
+        if ($text === "" || !str_contains($text, '{$row.')) return $text;
+        return preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}/', fn($m): string => (string)(is_array($row[$m[1]] ?? null) ? "" : ($row[$m[1]] ?? "")), $text);
     }
 
     private function error(int $itemId, string $msg): void {
@@ -440,7 +442,7 @@ final class Menu {
     /** Filtr na sloupec hlavni tabulky tridy (_mct_<trida>); jazykove atributy jen pres podminku. */
     private function filterSql(string $class, array $f, array $rows): string {
         $attr = self::attrName($f["attr"] ?? "");
-        if ($attr === "" || strpos($attr, ".") !== false) throw new \RuntimeException("neplatný atribut filtru");
+        if ($attr === "" || str_contains($attr, ".")) throw new \RuntimeException("neplatný atribut filtru");
         $op = strtolower((string)($f["op"] ?? "="));
         if (!in_array($op, self::FILTER_OPS, true)) throw new \RuntimeException("neplatný operátor '$op'");
         $col = "`_mct_{$class}`.`$attr`";
@@ -448,7 +450,7 @@ final class Menu {
         if ($op === "notnull") return "$col IS NOT NULL";
         $value = $this->fill((string)($f["value"] ?? ""), $rows[0] ?? []);
         if ($op === "in") {
-            $vals = array_map(fn($v) => $this->quote(trim($v)), array_filter(explode(",", $value), fn($v) => trim($v) !== ""));
+            $vals = array_map(fn(string $v): string => $this->quote(trim($v)), array_filter(explode(",", $value), fn($v): bool => trim($v) !== ""));
             return $vals ? "$col IN (" . implode(", ", $vals) . ")" : "0";
         }
         return "$col " . strtoupper($op) . " " . $this->quote($value);
@@ -460,7 +462,7 @@ final class Menu {
         $sql = self::checkSql((string)($cfg["sql"] ?? ""));
         $params = [];
         $row = $rows[0] ?? [];
-        $sql = preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}|:lang_id\b|:lang_prefix\b/', function ($m) use (&$params, $row) {
+        $sql = preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}|:lang_id\b|:lang_prefix\b/', function ($m) use (&$params, $row): string {
             if ($m[0] === ":lang_id") $params[] = (int)$this->ctx["lang_id"];
             else if ($m[0] === ":lang_prefix") $params[] = (string)$this->ctx["lang_prefix"];
             else $params[] = is_array($row[$m[1]] ?? null) ? null : ($row[$m[1]] ?? null);
@@ -470,9 +472,7 @@ final class Menu {
         $sql = "SELECT * FROM ($sql) AS menu_source LIMIT $limit";
 
         $db = $this->ctx["connection"];
-        if ($this->isMaria === null) {
-            $this->isMaria = stripos((string)$db->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION), "mariadb") !== false;
-        }
+        $this->isMaria ??= stripos((string)$db->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION), "mariadb") !== false;
         if ($this->isMaria) $sql = "SET STATEMENT max_statement_time = 3 FOR " . $sql;
 
         // jen cteni: transakce READ ONLY (zapis by DB odmitla), mimo uz bezici transakci
@@ -497,7 +497,7 @@ final class Menu {
         if ($sql === "") throw new \RuntimeException("prázdný SQL dotaz");
         if (!preg_match('/^(SELECT|WITH)\b/i', $sql)) throw new \RuntimeException("SQL zdroj musí začínat SELECT nebo WITH");
         $plain = self::withoutStrings($sql);
-        if (strpos($plain, ";") !== false) throw new \RuntimeException("SQL zdroj smí obsahovat jen jeden příkaz");
+        if (str_contains($plain, ";")) throw new \RuntimeException("SQL zdroj smí obsahovat jen jeden příkaz");
         if (preg_match('/\b(INTO\s+(OUTFILE|DUMPFILE|@)|FOR\s+UPDATE|LOCK\s+IN\s+SHARE|SLEEP\s*\(|BENCHMARK\s*\(|LOAD_FILE\s*\(|GET_LOCK\s*\(|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|SET\s+@)\b/i', $plain)) {
             throw new \RuntimeException("SQL zdroj smí jen číst data");
         }
@@ -507,7 +507,7 @@ final class Menu {
     /** Kontrola podminky zdroje tridy (vyvojar): bez dalsich prikazu a zapisu. */
     public static function checkCondition(string $cond): string {
         $plain = self::withoutStrings($cond);
-        if (strpos($plain, ";") !== false || preg_match('/\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|SLEEP|BENCHMARK|UNION)\b/i', $plain)) {
+        if (str_contains($plain, ";") || preg_match('/\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|SLEEP|BENCHMARK|UNION)\b/i', $plain)) {
             throw new \RuntimeException("podmínka smí obsahovat jen výraz WHERE");
         }
         return $cond;
@@ -520,7 +520,7 @@ final class Menu {
     /** {$row.sloupec} v podmince -> hodnota v uvozovkach. */
     private function bindRow(string $cond, array $rows): string {
         $row = $rows[0] ?? [];
-        $cond = preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}/', fn($m) => $this->quote(is_array($row[$m[1]] ?? null) ? null : ($row[$m[1]] ?? null)), $cond);
+        $cond = preg_replace_callback('/\{\$row\.([A-Za-z0-9_.]+)\}/', fn($m): string => $this->quote(is_array($row[$m[1]] ?? null) ? null : ($row[$m[1]] ?? null)), $cond);
         return str_replace(":lang_id", (string)(int)$this->ctx["lang_id"], $cond);
     }
 
@@ -536,7 +536,7 @@ final class Menu {
 
     /** "menu_text|name" -> [menu_text, name] (jen platne nazvy atributu). */
     private static function attrList($spec): array {
-        return array_values(array_filter(array_map([ self::class, "attrName" ], explode("|", (string)$spec))));
+        return array_values(array_filter(array_map(self::attrName(...), explode("|", (string)$spec))));
     }
 
     /** Prvni neprazdna hodnota z atributu (text bez HTML). */

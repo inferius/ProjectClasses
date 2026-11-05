@@ -7,7 +7,7 @@ namespace API\Generated;
  * Podpis jako ve vygenerovanem souboru, jen bez typu mixed (testy bezi i na PHP 7.4).
  */
 final class GeneratedMethods {
-    public static function Add($value = null, array $context = []) {
+    public static function Add($value = null, array $context = []): string {
         extract($context, EXTR_SKIP);
         return "cache:" . ($a + $b);
     }

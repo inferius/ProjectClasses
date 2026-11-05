@@ -1,14 +1,16 @@
 <?php
+
+declare(strict_types=1);
 namespace API\Utils;
 
 abstract class Enum {
-    private static $constCacheArray = NULL;
+    private static ?array $constCacheArray = NULL;
 
     private static function getConstants() {
         if (self::$constCacheArray == NULL) {
             self::$constCacheArray = [];
         }
-        $calledClass = get_called_class();
+        $calledClass = static::class;
         if (!array_key_exists($calledClass, self::$constCacheArray)) {
             $reflect = new \ReflectionClass($calledClass);
             self::$constCacheArray[$calledClass] = $reflect->getConstants();
@@ -23,7 +25,7 @@ abstract class Enum {
             return array_key_exists($name, $constants);
         }
 
-        $keys = array_map('strtolower', array_keys($constants));
+        $keys = array_map(strtolower(...), array_keys($constants));
         return in_array(strtolower($name), $keys);
     }
 

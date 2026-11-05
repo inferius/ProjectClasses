@@ -1,27 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class TableObject {
 
-    private $id = null;
     private $columnInfo = [];
-    private $tableName;
 
     private $tableInfo = [];
 
     /** @var TableAttributeValue[] */
-    private $values = [];
+    private array $values = [];
 
-    private $isEdited = false;
+    private bool $isEdited = false;
 
     public function getId() { return $this->id; }
     public function getTableName() { return $this->tableName; }
 
-    public function __construct($tableName, $id = null) {
-        $this->tableName = $tableName;
-        $this->id = $id;
-
+    public function __construct(private $tableName, private $id = null) {
         $this->_checkTableExist();
         $this->_loadTableInfo();
 
@@ -85,13 +82,13 @@ class TableObject {
                 }
 
             }
-            catch (\Exception $e) {
+            catch (\Exception) {
             }
         }
 
     }
 
-    public function save() {
+    public function save(): void {
         if (!$this->isEdited) return;
 
         $saveAttrs = [];
@@ -113,7 +110,7 @@ class TableObject {
         }
     }
 
-    private function _checkAttr(&$attrName, $value) {
+    private function _checkAttr(&$attrName, $value): void {
         $attrName = strtolower($attrName);
         if (empty($this->columnInfo[$attrName])) {
             throw new \InvalidArgumentException("Attribute '$attrName' on table '{$this->tableName}' not exist.");
@@ -132,7 +129,7 @@ class TableObject {
         }
     }
 
-    public function delete() {
+    public function delete(): void {
         if ($this->id == null) return;
         \API\Configurator::$connection->query("DELETE FROM `{$this->tableName}` WHERE id = ?", $this->id);
     }
@@ -150,7 +147,7 @@ class TableObject {
         return $this->getItem($attrName)->getValue();
     }
 
-    public function setValue($attrName, $value) {
+    public function setValue($attrName, $value): void {
         $this->_checkAttr($attrName, $value);
 
         $this->isEdited = true;

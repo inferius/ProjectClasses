@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Frontend;
 
 use API\Configurator;
@@ -26,7 +28,7 @@ class PageTemplate
     private static $template_configuration = [];
 
     /** dalsi koreny sablon (napr. moduly administrace): [ [ "root" => absolutni cesta, "relative" => URL ] ] */
-    private static $template_roots = [];
+    private static array $template_roots = [];
 
     /**
      * Načte externí JS soubor/y
@@ -119,25 +121,15 @@ class PageTemplate
 
     /**
      * Načte pouze JS a CSS soubory pro danou stranku, šablona a PHP soubor se v tomto případě nezpracovávájí
-     *
-     * @deprecated use loadCssJs instead
-     */
-    public static function load_css_js($page_name, $load_param = [ "css" => true, "js" => true, "async" => true ]) {
-        \API\Utils\Deprecation::trigger("PageTemplate::load_css_js() - pouzijte loadCssJs()");
-        return self::loadCssJs($page_name, $load_param);
-    }
-
-    /**
-     * Načte pouze JS a CSS soubory pro danou stranku, šablona a PHP soubor se v tomto případě nezpracovávájí
      * @param string $page_name Název šablony
      * @param array $load_param Inicializační parametry [ "css" => true, "js" => true, "async" => true ]
      */
-    public static function loadCssJs(string $page_name, array $load_param = [ "css" => true, "js" => true, "async" => true ]) {
+    public static function loadCssJs(string $page_name, array $load_param = [ "css" => true, "js" => true, "async" => true ]): void {
         if (!empty($load_param["css"])) self::load_css_internal($page_name, null, empty($load_param["async"]) ? true : $load_param["async"]);
         if (!empty($load_param["js"])) self::load_js_internal($page_name, empty($load_param["async"]) ? true : $load_param["async"],  null);
     }
 
-    private static function add_full_load_data($page_name, $type, $path) {
+    private static function add_full_load_data($page_name, string $type, string $path): void {
         if (empty(self::$full_load_data[$page_name])) self::$full_load_data[$page_name] = [ "name" => $page_name, "css" => [], "js" => []];
 
         self::$full_load_data[$page_name][$type][] = $path;
@@ -154,7 +146,7 @@ class PageTemplate
         return $mtime ? "?v=" . $mtime : "";
     }
 
-    private static function load_css_internal($page_name, $template_data = null, $async = false) {
+    private static function load_css_internal($page_name, $template_data = null, $async = false): void {
 
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
 
@@ -169,7 +161,7 @@ class PageTemplate
             $rel_attr = 'rel="preload" as="style" onload="this.rel=\'stylesheet\'"';
         }
 
-        $getFile = function ($fileName, $absolutePath = null) use ($rel_attr) {
+        $getFile = function ($fileName, $absolutePath = null) use ($rel_attr): string {
             if ($absolutePath !== null) $fileName .= self::assetVersion($absolutePath);
             return  "<link href='$fileName' $rel_attr />";
         };
@@ -196,7 +188,7 @@ class PageTemplate
 
     }
 
-    private static function load_js_internal($page_name, $async = true, $template_data = null) {
+    private static function load_js_internal($page_name, $async = true, $template_data = null): void {
         if (empty($template_data)) $template_data = self::getTemplateData($page_name);
         $js_path = $template_data["dirs"]["root"] . "/page.js";
         $ts_path = $template_data["dirs"]["root"] . "/page.ts";
@@ -243,7 +235,7 @@ class PageTemplate
         return is_file("{$dir}/page.latte") || is_file("{$dir}/page.php");
     }
 
-    private static function getTemplateData($page_name) {
+    private static function getTemplateData($page_name): array {
         $root = self::$template_configuration["dirs"]["root"];
         $relative = self::$template_configuration["dirs"]["relative"]["root"];
         // dalsi koreny (addTemplateRoot): s prednosti pred hlavnim adresarem (napr. sablony projektu nad jadrem),
@@ -284,7 +276,7 @@ class PageTemplate
      * Zobrazí stránku podle zadané šablony
      *
      */
-    public static function show($page_name, $params = [])
+    public static function show($page_name, $params = []): void
     {
         self::executeTemplate($page_name, false, $params);
     }
@@ -292,7 +284,7 @@ class PageTemplate
     /*
     * Zobrazi pouze jednou pri ostatnich pokusech nacist sablonu ignoruje
     */
-    public static function showOnce($page_name, $params = [])
+    public static function showOnce($page_name, $params = []): void
     {
         if (in_array($page_name, self::$once_load_template)) return;
         self::$once_load_template[] = $page_name;
@@ -304,7 +296,7 @@ class PageTemplate
         return self::executeTemplate($page_name, true, $params);
     }
 
-    private static function executeTemplate($page_name, $as_string = false, $params = []) {
+    private static function executeTemplate($page_name, bool $as_string = false, $params = []) {
         $async = true;
 
         if (isset($params["async"]))  {
@@ -343,10 +335,10 @@ class PageTemplate
             // Inicializace globalnich promennych
             foreach (self::$global_vars as $key => $val) {
                 if (is_callable($val)) {
-                    $$key = $val();
+                    ${$key} = $val();
                 }
                 else{
-                    $$key = $val;
+                    ${$key} = $val;
                 }
             }
 
@@ -376,7 +368,7 @@ class PageTemplate
         return "";
     }
 
-    public static function createOptiScriptLoad() {
+    public static function createOptiScriptLoad(): array {
 
 
         $file_name_css = self::$full_load_data["#file"]["css"];

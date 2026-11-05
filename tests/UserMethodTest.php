@@ -7,10 +7,10 @@ use Tests\Support\FakeConnection;
 
 final class UserMethodTest extends TestCase {
     /** @var FakeConnection */
-    private $db;
+    private \Tests\Support\FakeConnection $db;
 
     /** @var array<string, string> jmeno -> kod metody v DB */
-    private $methods = [
+    private array $methods = [
         "Add" => 'return $a + $b;',
         "Base" => '$x = $a + 1;',
         "Twice" => 'API.Method::Base; return $x * 2;',
@@ -21,16 +21,12 @@ final class UserMethodTest extends TestCase {
     protected function setUp(): void {
         $methods = $this->methods;
         $this->db = (new FakeConnection())
-            ->on("SELECT content FROM methods WHERE name = ?", function (array $p) use ($methods) {
-                return isset($methods[$p[0]]) ? [ "content" => $methods[$p[0]] ] : null;
-            })
-            ->on("SELECT id FROM methods WHERE name = ?", function (array $p) use ($methods) {
-                return isset($methods[$p[0]]) ? [ "id" => 1 ] : null;
-            })
-            ->on("SELECT name FROM methods", function () use ($methods) {
+            ->on("SELECT content FROM methods WHERE name = ?", fn(array $p): ?array => isset($methods[$p[0]]) ? [ "content" => $methods[$p[0]] ] : null)
+            ->on("SELECT id FROM methods WHERE name = ?", fn(array $p): ?array => isset($methods[$p[0]]) ? [ "id" => 1 ] : null)
+            ->on("SELECT name FROM methods", function () use ($methods): array {
                 $names = array_keys($methods);
                 sort($names);
-                return array_map(function ($n) { return [ "name" => $n ]; }, $names);
+                return array_map(fn(string $n): array => [ "name" => $n ], $names);
             });
 
         Configurator::$connection = $this->db;

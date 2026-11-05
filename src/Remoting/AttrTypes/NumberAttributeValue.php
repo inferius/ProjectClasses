@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Model\IAttributeInfo;
@@ -29,9 +31,9 @@ class NumberAttributeValue extends AttributeValue {
                 $style = $format;
             }
 
-            @list($attributes, $pattern, $symbols, $textAttributes) = $args + [ null, null, null, null];
+            @[$attributes, $pattern, $symbols, $textAttributes] = $args + [ null, null, null, null];
 
-            $f = new \NumberFormatter(\API\Configurator::$locale, $style);
+            $f = new \NumberFormatter(\API\Configurator::locale(), $style);
 
             if (is_array($attributes)) {
                 foreach ($attributes as $attrName => $val) $f->setAttribute($attrName, $val);
@@ -47,12 +49,12 @@ class NumberAttributeValue extends AttributeValue {
                 foreach ($textAttributes as $attrName => $val) $f->setTextAttribute($attrName, $val);
             }
 
-            return $f->format($this->value);
+            return $f->format(\API\Utils\Value::toNumber($this->value));
         }
         else {
-            list($decimal_count, $decimal_separator, $thousands_separator) = $args + [0, ',', ' '];
+            [$decimal_count, $decimal_separator, $thousands_separator] = $args + [0, ',', ' '];
 
-            return number_format($this->value, $decimal_count, $decimal_separator, $thousands_separator);
+            return number_format(\API\Utils\Value::toNumber($this->value), (int)$decimal_count, (string)$decimal_separator, (string)$thousands_separator);
         }
 
         return $this->value;

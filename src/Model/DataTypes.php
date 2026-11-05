@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Model;
 
 class DataTypes {
@@ -17,16 +19,16 @@ class DataTypes {
     const CLASSES = "class";
 
     /** @var string[] $constants */
-    private static $constants = [];
-    private static $const2val = [];
-    private static $val2const = [];
+    private static array $constants = [];
+    private static array $const2val = [];
+    private static array $val2const = [];
 
-    private static $isInitialized = false;
-    private static function _init() {
+    private static bool $isInitialized = false;
+    private static function _init(): void {
         if (self::$isInitialized) return;
         self::$isInitialized = true;
 
-        $thisClass = new \ReflectionClass('API\Model\DataTypes');
+        $thisClass = new \ReflectionClass(\API\Model\DataTypes::class);
         self::$const2val = $thisClass->getConstants();
         self::$val2const = array_flip(self::$const2val);
         self::$constants = array_values(self::$const2val);
@@ -39,12 +41,10 @@ class DataTypes {
             throw new \InvalidArgumentException("DataType '$dataType' is not valid.");
         }
 
-        switch ($dataType) {
-            case self::CLASSES:
-            case self::ENUM:
-                return true;
-            default: return false;
-        }
+        return match ($dataType) {
+            self::CLASSES, self::ENUM => true,
+            default => false,
+        };
     }
 
 }

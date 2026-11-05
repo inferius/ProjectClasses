@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Model\IAttributeInfo;
 
 class AttributeValue implements IAttributeValue {
-    protected $value;
     protected $cache_value;
 
     /** @var IAttributeInfo $attr_info */
@@ -24,8 +25,7 @@ class AttributeValue implements IAttributeValue {
 
     protected $is_edited = false;
 
-    public function __construct($value, IAttributeInfo $attr_info) {
-        $this->value = $value;
+    public function __construct(protected $value, IAttributeInfo $attr_info) {
         $this->attr_info = $attr_info;
         $this->attr_type = new AttrTypeItem($attr_info, $this);
         $this->_eventManager = new \API\Event\EventManager();

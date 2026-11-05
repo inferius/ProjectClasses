@@ -1,22 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 class ReadOnlyAttributeValue implements IAttributeValue {
-    protected $value;
-    protected $name;
     protected $type;
     /**
      * @var false
      */
     protected $is_edited;
 
-    public function __construct($value, $name) {
-        $this->value = $value;
-        $this->name = $name;
-
-        if (is_int($value)) $this->type = "integer";
-        else if (is_string($value)) $this->type = "string";
+    public function __construct(protected $value, protected $name) {
+        if (is_int($this->value)) $this->type = "integer";
+        else if (is_string($this->value)) $this->type = "string";
         else $this->type = "unknown";
     }
 

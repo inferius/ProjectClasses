@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Model\IAttributeInfo;
@@ -14,17 +16,14 @@ class FileAttributeValue extends AttributeValue {
         $this->postprocess_info = new \API\PostprocessData($class_name, $attr_info->getAlias());
     }
 
-    /**
-     * @var PostprocessData
-     */
-    private $postprocess_info;
+    private \API\PostprocessData $postprocess_info;
 
     private $temp_to_delete = [];
     private $final_to_delete = null;
 
     // rastrove obrazky (zmensovani a srcset pres Imagine) - SVG je vektor, GD/Imagick ho neotevre
-    private static $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
-    private static $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
+    private static array $image_extension = [ "jpg", "jpeg", "jfif", "pjpeg", "pjp", "apng", "png", "gif", "webp", "avif" ];
+    private static array $image_size = [ 350, 410, 600, 745, 860, 970, 1200, 1600, 2400, 3200 ];
 
     /**
      * Vychozi kvalita variant obrazku (srcset). Projekt muze prepsat v config.inc.php:
@@ -55,7 +54,7 @@ class FileAttributeValue extends AttributeValue {
         $conn = \API\Configurator::$connection;
         $uploaded = \API\Configurator::$config["path"]["absolute"]["uploaded"];
         $row = $conn->fetch("SELECT relative_path, format_info, mime_type FROM fp_final_files WHERE id = ?", $fileId);
-        if (!$row || strpos((string)$row["mime_type"], "image/") !== 0 || stripos((string)$row["mime_type"], "svg") !== false) return null;
+        if (!$row || !str_starts_with((string)$row["mime_type"], "image/") || stripos((string)$row["mime_type"], "svg") !== false) return null;
         $path = $uploaded . $row["relative_path"];
         if (!is_file($path)) return null;
 
@@ -77,7 +76,7 @@ class FileAttributeValue extends AttributeValue {
         return $this->postprocess_info;
     }
 
-    public function setPostProcess($value) {
+    public function setPostProcess($value): void {
         if (is_string($value) || is_int($value)) {
             $this->postprocess_info = new \API\PostprocessData(intval($value));
         }
@@ -114,7 +113,7 @@ class FileAttributeValue extends AttributeValue {
         }
     }
 
-    private function cleanAfterSave() {
+    private function cleanAfterSave(): void {
         foreach ($this->temp_to_delete as $id_to_delete) $this->removeTempFile($id_to_delete);
         if (!empty($this->final_to_delete)) $this->removeFinalFile($this->final_to_delete);
 
@@ -122,12 +121,12 @@ class FileAttributeValue extends AttributeValue {
         $this->temp_to_delete = [];
     }
 
-    private function removeTempFile($id_to_delete) {
+    private function removeTempFile($id_to_delete): void {
         $this->removeFile("fp_temp_files", \API\Configurator::$config["path"]["absolute"]["temp"], $id_to_delete);
     }
 
 
-    private function removeFinalFile($id_to_delete) {
+    private function removeFinalFile($id_to_delete): void {
         $files = \API\Configurator::$connection->query("SELECT * FROM fp_final_files WHERE group_id = ?", $id_to_delete);
 
         foreach ($files as $file) {
@@ -146,7 +145,7 @@ class FileAttributeValue extends AttributeValue {
         \API\Configurator::$connection->query("DELETE FROM fp_final_files WHERE group_id = ?", $id_to_delete);
     }
 
-    private function removeFile($table_name, $start_path, $id_to_delete) {
+    private function removeFile(string $table_name, $start_path, $id_to_delete) {
         
 
         if ($id_to_delete == null) return;
@@ -229,14 +228,14 @@ class FileAttributeValue extends AttributeValue {
             //$this->removeTempFile($tmp_file_id);
             $this->temp_to_delete[] = $tmp_file_id;
 
-            if (\Nette\Utils\Strings::startsWith($file_data["mime_type"], "image/")) {
+            if (\str_starts_with($file_data["mime_type"], "image/")) {
                 $finfo = self::defaultFilePostProcess($final_file_path);
                 \API\Configurator::$connection->query("UPDATE fp_final_files SET format_info = ? WHERE id = ?", json_encode($finfo), $this->value);
             }
         }
     }
 
-    private static function defaultFilePostProcess($path) {
+    private static function defaultFilePostProcess($path): ?array {
         $info = pathinfo($path);
         //$mime_type = mime_content_type($path);
 
@@ -337,11 +336,11 @@ class FileAttributeValue extends AttributeValue {
         return $finfo;
     }
 
-    private function processPostProcessing($tmp_file_path) {
+    private function processPostProcessing(string $tmp_file_path) {
         return $this->getPostProcess()->processMethods($tmp_file_path);
     }
 
-    public function getValue() {
+    public function getValue(): ?array {
         if ($this->isEmpty()) return null;
         else {
 

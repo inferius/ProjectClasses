@@ -1,19 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 use API\Model\DataTypes;
 use API\Model\IAttributeInfo;
 
 class AttrTypeItem {
 
-    /** @var \Nette\Database\IRow */
-    private $attr_context;
-    private $last_error;
-    private $context = null;
+    private ?string $last_error = null;
 
-    function __construct($row_data, $context = null) {
-        $this->attr_context = $row_data;
-        $this->context = $context;
+    /**
+     * @param \Nette\Database\IRow $row_data
+     */
+    public function __construct(private $attr_context, private $context = null)
+    {
     }
 
     public function isRequired(): bool { return boolval($this->attr_context->is_required); }
@@ -23,7 +24,7 @@ class AttrTypeItem {
     public function getDescription() { return $this->attr_context->name; }
     public function getLastError() { return $this->last_error; }
 
-    public function isValid($value) {
+    public function isValid($value): bool {
         $value = $this->runAttrMethodStatic($value, "before_validation_fnc",$value, $method_error);
         if ($method_error) return false;
 
@@ -95,13 +96,13 @@ class AttrTypeItem {
         else return boolval($is_empty);
     }
 
-    private function runAttrMethodStatic($value, $method_name, $default_value = null, &$is_error = false, &$error_text = "") {
+    private function runAttrMethodStatic($value, string $method_name, $default_value = null, &$is_error = false, &$error_text = "") {
         if (!empty($this->attr_context->$method_name)) {
             //set_error_handler("warning_handler", E_ALL);
             try {
                 return \API\UserMethod::run_code($this->attr_context->$method_name, [ "value" => $value, "context" => $this->context ]);
             }
-            catch (\Exception $e) {
+            catch (\Exception) {
                 $error_text = "{$method_name}_error";
                 $is_error = true;
                 return null;

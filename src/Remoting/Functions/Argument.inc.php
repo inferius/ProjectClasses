@@ -1,17 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Functions;
 
 class Argument {
 
-    private $name;
+    private readonly string $name;
     private $values = [];
 
     public function __construct($name) {
         $this->name = strtolower($name);
     }
 
-    public function addValue($val) {
+    public function addValue($val): void {
         $this->values[] = $val;
     }
 
@@ -19,9 +21,11 @@ class Argument {
         if (empty($this->values[$index])) return null;
         $v = $this->values[$index];
 
-        if (is_callable(\API\Configurator::$replaceTextFnc))
+        // drive chybely zavorky: bez nastavene funkce volalo nedefinovanou $fnc
+        if (is_callable(\API\Configurator::$replaceTextFnc)) {
             $fnc = \API\Configurator::$replaceTextFnc;
             return $fnc($v);
+        }
         return $v;
     }
 

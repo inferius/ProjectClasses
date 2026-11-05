@@ -15,19 +15,20 @@ use API\Exceptions\UserMethodNotFoundException;
  * kdezto pres eval projde. Proto je cache zatim vypnuta, dokud ji administrace nebude generovat stejne jako eval.
  */
 class UserMethod {
-    const GENERATED_CLASS = 'API\\Generated\\GeneratedMethods';
+    // retezec, ne ::class - trida existuje jen kdyz administrace vygeneruje cache
+    const GENERATED_CLASS = 'API\Generated\GeneratedMethods';
 
     /** maximalni hloubka skladani metod (`API.Method::Jina;` uvnitr metody) */
     const MAX_COMPOSITION_DEPTH = 10;
 
     /** @var bool generovana cache nactena (neuspech se nepamatuje - soubor muze vzniknout pozdeji, napr. v cron procesu) */
-    private static $generatedLoaded = false;
+    private static bool $generatedLoaded = false;
 
     public static function get_method($method_name) {
         return self::replace_method_in_code(self::get_plain_method($method_name));
     }
 
-    private static function get_plain_method($method_name) {
+    private static function get_plain_method($method_name): string {
         $method_name = (string)$method_name;
 
         $method = \API\Configurator::$connection->fetch("SELECT content FROM methods WHERE name = ?", $method_name);
@@ -35,7 +36,7 @@ class UserMethod {
 
         // stare metody v souborech vedle tridy (basename - jmeno metody nesmi vest mimo slozku)
         $method_path = __DIR__ . "/Methods/" . basename($method_name) . ".php";
-        if ($method_name !== "" && is_file($method_path)) return file_get_contents($method_path);
+        if ($method_name !== "" && is_file($method_path)) return (string)file_get_contents($method_path);
 
         throw new UserMethodNotFoundException($method_name, "Method '$method_name' not found");
     }
@@ -58,7 +59,7 @@ class UserMethod {
         $method = $__um_code;
 
         foreach ($arguments as $key => $val) {
-            $$key = $val;
+            ${$key} = $val;
         }
 
         return eval($__um_code);
@@ -68,7 +69,7 @@ class UserMethod {
         return self::replaceComposition((string)$code, 0);
     }
 
-    private static function replaceComposition($code, $depth) {
+    private static function replaceComposition(string $code, int $depth): string {
         if ($depth > self::MAX_COMPOSITION_DEPTH) {
             throw new \RuntimeException("Method composition is deeper than " . self::MAX_COMPOSITION_DEPTH . " (cycle API.Method::...?)");
         }
@@ -90,7 +91,7 @@ class UserMethod {
         $__um_code = self::replace_method_in_code($code);
 
         foreach ($arguments as $key => $val) {
-            $$key = $val;
+            ${$key} = $val;
         }
 
         return eval($__um_code);
@@ -99,7 +100,7 @@ class UserMethod {
     /**
      * Existuje metoda (v DB, pripadne v zapnute generovane cache)?
      */
-    public static function exists($method_name) {
+    public static function exists($method_name): bool {
         $method_name = (string)$method_name;
         if (self::isCacheEnabled() && self::hasGeneratedMethod($method_name)) return true;
 
@@ -110,7 +111,7 @@ class UserMethod {
      * Nazvy vsech metod v DB, serazene podle jmena.
      * @return string[]
      */
-    public static function listAll() {
+    public static function listAll(): array {
         $names = [];
         foreach (\API\Configurator::$connection->fetchAll("SELECT name FROM methods ORDER BY name") as $row) {
             $names[] = (string)$row["name"];
@@ -121,25 +122,25 @@ class UserMethod {
     /**
      * Zapnuta generovana cache metod? (config projektu: "methods" => [ "cache" => true ])
      */
-    public static function isCacheEnabled() {
+    public static function isCacheEnabled(): bool {
         return !empty(\API\Configurator::$config["methods"]["cache"]);
     }
 
     /**
      * Cesta ke generovane cache metod (tmp projektu), null bez nastaveneho tmp.
      */
-    public static function generatedCachePath() {
+    public static function generatedCachePath(): ?string {
         $temp = \API\Configurator::$config["path"]["absolute"]["temp"] ?? "";
         if ($temp === "") return null;
 
         return rtrim($temp, "/\\") . "/cache/methods/GeneratedMethods.php";
     }
 
-    private static function hasGeneratedMethod($method_name) {
+    private static function hasGeneratedMethod($method_name): bool {
         return self::ensureGeneratedLoaded() && method_exists(self::GENERATED_CLASS, (string)$method_name);
     }
 
-    private static function runGenerated($method_name, array $arguments) {
+    private static function runGenerated($method_name, array $arguments): mixed {
         // generovane metody maji podpis (mixed $value = null, array $context = []) a context rozbali do promennych
         $value = null;
         $context = $arguments;
@@ -151,7 +152,7 @@ class UserMethod {
         return call_user_func([ self::GENERATED_CLASS, (string)$method_name ], $value, $context);
     }
 
-    private static function ensureGeneratedLoaded() {
+    private static function ensureGeneratedLoaded(): bool {
         if (self::$generatedLoaded || class_exists(self::GENERATED_CLASS, false)) {
             return self::$generatedLoaded = true;
         }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API;
 
 use API\Model\IAttributeInfo;
@@ -25,31 +27,27 @@ class DateTimeAttributeValue extends AttributeValue {
      */
     public function toFormat(...$args) {
         $def = [ null ];
-        @list($format) = $args + $def;
+        @[$format] = $args + $def;
         if (is_string($format)) {
-            switch (strtolower($format)) {
-                case "sql":
-                    return $this->value;
-                case "timestamp":
-                    return strtotime($this->value);
-                case "js_timestamp":
-                    return strtotime($this->value) * 1000;
-                default:
-                    return date($format, strtotime($this->value));
-            }
+            return match (strtolower($format)) {
+                "sql" => $this->value,
+                "timestamp" => \API\Utils\Value::toTimestamp($this->value),
+                "js_timestamp" => ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? null : $ts * 1000,
+                default => ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? "" : date($format, $ts),
+            };
         }
         else {
             if (class_exists("IntlDateFormatter")) {
-                @list($dateFormatter, $timeFormatter) = $args + [ \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT ];
+                @[$dateFormatter, $timeFormatter] = $args + [ \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT ];
 
-                $formatter = new \IntlDateFormatter(\API\Configurator::$locale, $dateFormatter, $timeFormatter);
+                $formatter = new \IntlDateFormatter(\API\Configurator::locale(), $dateFormatter, $timeFormatter);
                 if ($formatter === null)
                     throw new \API\Exceptions\InvalidConfigException(intl_get_error_message());
 
                 return $formatter->format($this->value);
             }
             else {
-                return date("j. n. Y H:i:s", strtotime($this->value));
+                return ($ts = \API\Utils\Value::toTimestamp($this->value)) === null ? "" : date("j. n. Y H:i:s", $ts);
             }
         }
     }

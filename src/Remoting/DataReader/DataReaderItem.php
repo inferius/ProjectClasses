@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Remoting\DataReader;
 
 class DataReaderItem {
-    private $defLangId;
-
     private $results;
 
-    public function __construct($defLangId = null) {
-        $this->defLangId = $defLangId;
+    public function __construct(private $defLangId = null)
+    {
     }
 
     public function getValue(string $attrName, $langId = null) {

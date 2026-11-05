@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Frontend;
 
 final class Setting {
-    private $values = [];
+    private array $values = [];
 
-    private static $attr_map = [ "int_val", "decimal_val", "short_text", "long_text", "datetime_val", "formatted_text", "boolean_val"];
+    private static array $attr_map = [ "int_val", "decimal_val", "short_text", "long_text", "datetime_val", "formatted_text", "boolean_val"];
     private $_context = null;
 
-    function __construct() {
+    public function __construct() {
 
         $this->_context = \API\Configurator::$explorer->table("frontend_setting");
         

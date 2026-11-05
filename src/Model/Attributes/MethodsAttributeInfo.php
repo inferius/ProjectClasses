@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace API\Model;
 
 class MethodsAttributeInfo {
@@ -37,7 +39,7 @@ class MethodsAttributeInfo {
     public function beforeRead(): ?string { return $this->before_read_fnc; }
 
 
-    public function __construct($row_data) {
+    public function __construct(array|\ArrayAccess $row_data) {
         $this->before_validation_fnc = $row_data["before_validation_fnc"];
         $this->validate_fnc = $row_data["validate_fnc"];
         $this->is_empty_value_fnc = $row_data["is_empty_value_fnc"];

@@ -1,42 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
+namespace API;
+
 class Localization {
 
-    private static $cahed = false;
+    private static bool $cahed = false;
     private static $cache = [];
     private static $memcache;
 
-    public static function getText($key, $params = null) {
+    /**
+     * Preklad klice v aktualnim jazyce, null kdyz preklad chybi.
+     * @param mixed $key klic prekladu (ze sablon muze prijit i cislo nebo null)
+     * @param array<string, mixed>|null $params [ "params" => [ "jmeno" => hodnota ] ] nahradi "@jmeno" v textu
+     */
+    public static function getText($key, $params = null): ?string {
         return self::getKeyValue($key, $params);
     }
 
-    public static function getPlainText($key, $params = null) {
-        return strip_tags(self::getKeyValue($key, $params), "<br>");
+    /**
+     * Preklad bez HTML znacek (krome <br>), prazdny retezec kdyz preklad chybi.
+     * @param array<string, mixed>|null $params
+     */
+    public static function getPlainText($key, $params = null): string {
+        return strip_tags(self::getKeyValue($key, $params) ?? "", "<br>");
     }
 
-    private static function getKeyValue($key, $params = null) {
+    /** @param array<string, mixed>|null $params */
+    private static function getKeyValue($key, $params = null): ?string {
         if (self::$cahed === false) self::loadToCache();
-        
-        $val = self::getCacheValue($key);
 
-        if (!empty($params)) {
-            if (!empty($params["params"]) && is_array($params["params"])) {
-                foreach ($params["params"] as $mkey => $mval) {
-                    $val = str_replace("@$mkey", $mval, $val);
-                }
+        $val = self::getCacheValue((string)$key);
+        // memcache vraci false, kdyz klic nema
+        if (!is_string($val)) return null;
+
+        if (!empty($params["params"]) && is_array($params["params"])) {
+            foreach ($params["params"] as $mkey => $mval) {
+                $val = str_replace("@$mkey", (string)$mval, $val);
             }
         }
 
         return $val;
     }
 
-    public static function loadToCache() {
+    public static function loadToCache(): void {
         if (self::loadToMemcache()) {
             return;
         }
 
         self::$cahed = true;
-        
+
         $list = \API\Configurator::$connection->query("SELECT fsld.*, fs.text_id FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
         foreach ($list as $data) {
             $text = self::rowText($data);
@@ -54,8 +68,8 @@ class Localization {
         return $data["short_text"] ?? null;
     }
 
-    private static function getKey($key) {
-        return \API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale . ":" . $key;
+    private static function getKey($key): string {
+        return \API\Configurator::$localizationPrefix . ":" . \API\Configurator::locale() . ":" . $key;
     }
 
     public static function getCacheValue($key) {
@@ -67,11 +81,11 @@ class Localization {
         }
     }
 
-    public static function loadToMemcache() {
+    public static function loadToMemcache(): bool {
         if (!empty(\API\Configurator::$memcache)) {
             $expire = 24 * 60 * 60;
 
-            $loc = \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale);
+            $loc = \API\Configurator::$memcache->get(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::locale());
             //dumpe($loc);
             if (!empty($loc)) {
                 self::$cahed = true;
@@ -79,7 +93,7 @@ class Localization {
             }
             self::$cahed = true;
 
-            \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::$locale, strtotime("now"), 0, $expire);
+            \API\Configurator::$memcache->set(\API\Configurator::$localizationPrefix . ":" . \API\Configurator::locale(), strtotime("now"), 0, $expire);
 
             $list = \API\Configurator::$connection->query("SELECT fsld.*, fs.text_id FROM _mct_translate AS fs INNER JOIN (SELECT * FROM _mct_translate_lang_data WHERE lang_id = ?) AS fsld ON fsld.parent_id = fs.id", \API\Configurator::$currentLanguageId);
             foreach ($list as $data) {
@@ -94,7 +108,7 @@ class Localization {
         else return false;
     }
 
-    public static function clear() {
+    public static function clear(): void {
         self::$cahed = false;
         self::$cache = [];
         if (!empty(\API\Configurator::$memcache)) \API\Configurator::$memcache->flush();

@@ -26,6 +26,18 @@ class Users {
     public function getCreated() { return $this->user->created; }
     public function getGroups() { return empty($this->groups) ? null : array_keys($this->groups); }
 
+    /**
+     * ID skupin uzivatele (perm_groups.id), prazdne pole bez skupin
+     * @return int[]
+     */
+    public function getGroupIds(): array { return array_map("intval", $this->group_id_list); }
+
+    /**
+     * Super admin smi vse (users_data.is_super_admin - sloupec pridava modul opravneni; bez nej false)
+     * @return bool
+     */
+    public function isSuperAdmin(): bool { return !empty($this->user->is_super_admin); }
+
     private static function getAttributeManager(): \API\AttrTypesManager {
         if (empty(self::$attributes_manager)) {
             self::$attributes_manager = new \API\AttrTypesManager();

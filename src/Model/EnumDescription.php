@@ -10,14 +10,29 @@ class EnumDescription {
 
     }
 
+    /**
+     * Smaze popis vyctu z memcache (po zmene vyctu v administraci)
+     * @param string $text_id
+     * @return void
+     */
+    public static function forget(string $text_id): void {
+        if (empty(\API\Configurator::$memcache)) return;
+
+        \API\Configurator::$memcache->delete(\API\Configurator::cacheKey("ModelEnumDescription[MODEL]:" . $text_id));
+    }
+
     public static function get(string $text_id): EnumDescription {
-        $cache_key = "ModelEnumDescription[MODEL]:" . $text_id;
+        $cache_key = \API\Configurator::cacheKey("ModelEnumDescription[MODEL]:" . $text_id);
 
         if (!empty(\API\Configurator::$memcache)) {
-            $cm = unserialize(\API\Configurator::$memcache->get($cache_key));
-            if ($cm instanceof EnumDescription) return $cm;
-            else {
-                trigger_error("Deserialize EnumDescription not working", E_USER_WARNING);
+            $serialized = \API\Configurator::$memcache->get($cache_key);
+            // prazdna cache (false) neni chyba - varovani jen u neciteleho obsahu
+            if (!empty($serialized)) {
+                $cm = unserialize($serialized);
+                if ($cm instanceof EnumDescription) return $cm;
+                else {
+                    trigger_error("Deserialize EnumDescription not working", E_USER_WARNING);
+                }
             }
         }
 

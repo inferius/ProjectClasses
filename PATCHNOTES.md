@@ -1,7 +1,46 @@
 # Patch notes - michalosoft/project-classes
 
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
-Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
+Projekty: EasyAdmin (administrace a kostra webu; administrace projektu dostavaji knihovnu s vydanim jadra),
+anoda (admin + web), cestadocloudu (admin + web), lapenna (admin + web). mytimi2 knihovnu nepouziva.
+
+## v1.8.0 - 2026-11-05
+
+Zpetne kompatibilni priprava na 2.0 (PHP 8.3, typy, opravneni v knihovne) - co 2.0 zmeni a cim to nahradit:
+[UPGRADE-2.0.md](UPGRADE-2.0.md).
+
+- `UserMethod`: nazev metody jde do dotazu jako parametr (drive se skladal do SQL retezce). Argument pojmenovany
+  `method` uz nemuze podstrcit jiny kod. Skladani metod `API.Method::Jina;` ma limit hloubky 10 (cyklus drive
+  vycerpal zasobnik). Nove `exists()`, `listAll()`, `isCacheEnabled()`, `generatedCachePath()`.
+- `UserMethod`: volitelna cache metod, kterou stavi administrace (`tmp/cache/methods/GeneratedMethods.php`,
+  `API\Generated\GeneratedMethods`) - bez eval a bez dotazu do DB. **Vychozi vypnuto**, zapina config projektu
+  `"methods" => [ "cache" => true ]`. Generovany soubor ma `strict_types` a navratovy typ `mixed`: metoda, ktera
+  v nektere vetvi nevraci hodnotu, v cache spadne na TypeError (napr. `GetLoginCookieValidLength` ze zakladni
+  instalace: `else strtotime("+365 days");` bez `return` - trvale prihlaseni). Zapnout az po uprave generatoru v jadru.
+  Na PHP 7 se cache nenacita (soubor je pro PHP 8).
+- `Users::getGroupIds()` (int[], perm_groups.id) a `Users::isSuperAdmin()` (`users_data.is_super_admin` z modulu
+  opravneni; bez sloupce false).
+- `Configurator::$cachePrefix` a `Configurator::cacheKey()`: prefix klicu memcache pro popisy trid a vyctu, kdyz vic
+  projektu sdili jednu memcache. Prazdny (vychozi) = klice beze zmeny.
+- `ClassDescription::forget($textId)` smaze popis tridy z memcache (klic `ModelClassDescription[MODEL]:` i zastaraly
+  `ModelClassDescription:`, ten i bez prefixu - sklada ho kopie `getClassDescription()` ve frameworku administrace),
+  `EnumDescription::forget($textId)` popis vyctu.
+- `EnumDescription::get()` uz nevaruje "Deserialize EnumDescription not working" pri prazdne cache.
+- PHP 8.4+: vyjimky (`$previous`) a `DataReaderOrder::addOrder()` maji u parametru s vychozim null explicitni `?`
+  (PHP 8.4 hlasilo "Implicitly marking parameter as nullable is deprecated" pri kazdem vytvoreni vyjimky).
+- Varovani `E_USER_DEPRECATED` (kazde jednou za pozadavek, `API\Utils\Deprecation`) u API, ktere 2.0 odstrani:
+  `PlainUrl::redirectWithoutSlash()`, `PlainUrlToken::slash_at_end()`, `PageTemplate::load_css_js()`,
+  `DataReader::getClassDataInner2()` a nepouzivane tridy `API\Frontend\DataReader`, `API\Model\DataLoader`,
+  `API\DateTimeConfigurator`, `API\FunctionLine` (varovani pri nacteni).
+- `composer.json`: `php >=7.4` (`Menu` pouziva arrow funkce od 1.3), `phpunit/phpunit ^9.6`; testy bez databaze
+  (`phpunit.xml.dist`, `tests/Support`), `vendor/bin/phpunit`.
+
+Projekt: `composer update michalosoft/project-classes`. Pak:
+- Administrace (jadro, `pages.inc.php:5`) vola `$plainurl->redirectWithoutSlash()` - varovani pri kazdem pozadavku,
+  nahradit `redirectAddSlash()`.
+- Administrace po zmene tridy maze jen klic `ModelClassDescription:` (`api/Handlers/Model/ClassesHandler.php`,
+  `webapi/model/classes.php`), klic `[MODEL]`, ktery cte `BaseObject`, zustava stary - volat
+  `\API\Model\ClassDescription::forget($textId)`. `Configurator::$cachePrefix` nastavit az potom.
 
 ## v1.7.3 - 2026-11-05
 

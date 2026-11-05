@@ -202,7 +202,11 @@ class DataReader {
     }
 
 
+    /**
+     * @deprecated nedokoncena kopie getClassDataInner(), ve 2.0 nebude
+     */
     function getClassDataInner2($classId, $attributes, $page = 0, $limit = -1, $order = null, $condition = null, $filterCondition = null, $lang_id = null) {
+        \API\Utils\Deprecation::trigger("DataReader::getClassDataInner2() - pouzijte getClassData()");
         $class_info = \API\Model\ClassDescription::get($classId);
         $table_name = $class_info->table()->getTableName();
 

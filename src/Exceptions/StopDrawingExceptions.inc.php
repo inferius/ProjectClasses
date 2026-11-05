@@ -7,7 +7,7 @@ namespace API\Frontend;
 class StopDrawingExceptions extends \Exception
 {
     // Redefine the exception so message isn't optional
-    public function __construct($message, $code = 3, \Exception $previous = null) {
+    public function __construct($message, $code = 3, ?\Exception $previous = null) {
         // make sure everything is assigned properly
         parent::__construct($message, $code, $previous);
     }

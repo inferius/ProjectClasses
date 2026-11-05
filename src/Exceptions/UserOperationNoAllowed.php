@@ -4,7 +4,7 @@ namespace API\Exceptions {
 	class UserOperationNoAllowed extends BaseException
 	{
 		// Redefine the exception so message isn't optional
-		public function __construct($message, $code = 2, \Exception $previous = null) {
+		public function __construct($message, $code = 2, ?\Exception $previous = null) {
 			// some code
 
 			// make sure everything is assigned properly

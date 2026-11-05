@@ -37,7 +37,10 @@ final class PlainUrlToken {
      *
      * @deprecated use slashAtEnd instead. Remove on next version
      */
-    public function slash_at_end(): bool { return $this->slashAtEnd(); }
+    public function slash_at_end(): bool {
+        \API\Utils\Deprecation::trigger("PlainUrlToken::slash_at_end() - pouzijte slashAtEnd()");
+        return $this->slashAtEnd();
+    }
 
     /**
      * Vrací informaci o tom, zda je zakončen lomítkem

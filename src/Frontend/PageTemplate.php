@@ -123,6 +123,7 @@ class PageTemplate
      * @deprecated use loadCssJs instead
      */
     public static function load_css_js($page_name, $load_param = [ "css" => true, "js" => true, "async" => true ]) {
+        \API\Utils\Deprecation::trigger("PageTemplate::load_css_js() - pouzijte loadCssJs()");
         return self::loadCssJs($page_name, $load_param);
     }
 

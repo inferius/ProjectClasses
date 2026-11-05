@@ -118,8 +118,28 @@ class ClassDescription/* implements ArrayAccess*/ {
         else return "{$this->table()->getTableName()}.$attrName";
     }
 
+    /**
+     * Smaze popis tridy z memcache - novy (ClassDescription::get) i zastaraly (API\ClassDescription::get).
+     * Volat po zmene tridy nebo jejich atributu v administraci. Popisy trid, ktere na zmenenou tridu odkazuji,
+     * ji maji vnorenou a zustanou stare - spolehlive je az vymazani cele memcache.
+     * Zastaraly klic se maze i bez prefixu: kopie getClassDescription() ve frameworku administrace ho sklada sama
+     * (bez $cachePrefix) - smazani cizi polozky stoji jen jeji nove nacteni.
+     * @param string $text_id
+     * @return void
+     */
+    public static function forget(string $text_id): void {
+        if (empty(\API\Configurator::$memcache)) return;
+
+        $keys = [
+            \API\Configurator::cacheKey("ModelClassDescription[MODEL]:" . $text_id),
+            \API\Configurator::cacheKey("ModelClassDescription:" . $text_id),
+            "ModelClassDescription:" . $text_id,
+        ];
+        foreach (array_unique($keys) as $key) \API\Configurator::$memcache->delete($key);
+    }
+
     public static function get(string $text_id): ClassDescription {
-        $cache_key = "ModelClassDescription[MODEL]:" . $text_id;
+        $cache_key = \API\Configurator::cacheKey("ModelClassDescription[MODEL]:" . $text_id);
 
         if (!empty(\API\Configurator::$memcache)) {
             $deserialized_data = \API\Configurator::$memcache->get($cache_key);

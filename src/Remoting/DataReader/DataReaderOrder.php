@@ -15,7 +15,7 @@ class DataReaderOrder {
         $this->classInfo = $classInfo;
     }
 
-    public function addOrder(string $attrName, string $order = null) {
+    public function addOrder(string $attrName, ?string $order = null) {
         $this->order[] = [ "attrName" => $attrName, "direction" => $order ];
     }
 

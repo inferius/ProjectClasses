@@ -10,7 +10,7 @@ namespace API\Exceptions {
          * @param mixed $code Obecný kód vyjímky
          * @param \Exception $previous Předchozí exception
          */
-        public function __construct($message, $code = 0, \Exception $previous = null) {
+        public function __construct($message, $code = 0, ?\Exception $previous = null) {
             // some code
 
             // make sure everything is assigned properly

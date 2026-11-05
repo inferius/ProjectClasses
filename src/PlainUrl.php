@@ -312,6 +312,7 @@ final class PlainUrl {
      * @return void
      */
     public function redirectWithoutSlash() {
+        \API\Utils\Deprecation::trigger("PlainUrl::redirectWithoutSlash() - pouzijte redirectAddSlash()");
         $this->redirectAddSlash();
     }
 

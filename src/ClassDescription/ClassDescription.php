@@ -19,7 +19,7 @@ function getClassDescription($class_text_id) {
     // tridy, v jejichz popisu je zkraceny popis z cyklu - neukladaji se do mezipameti (jina hloubka nez primy dotaz)
     static $cut = [];
 
-    $cache_key = "ModelClassDescription:" . $class_text_id;
+    $cache_key = \API\Configurator::cacheKey("ModelClassDescription:" . $class_text_id);
 
     if (!empty(\API\Configurator::$memcache)) {
         $r = \API\Configurator::$memcache->get($cache_key);

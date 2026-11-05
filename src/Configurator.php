@@ -34,6 +34,23 @@ class Configurator {
      */
     public static $localizationPrefix = "loc";
 
+    /**
+     * Prefix klicu memcache pro popisy trid a vyctu (ModelClassDescription..., ModelEnumDescription...).
+     * Prazdny = klice jako do 1.7. Nastavit, kdyz vic projektu sdili jednu memcache - jinak si stejne pojmenovane
+     * tridy prepisuji popis. Administrace pak musi zneplatnovat pres ClassDescription::forget(), ne skladat klic sama.
+     * @var string
+     */
+    public static $cachePrefix = "";
+
+    /**
+     * Klic memcache s prefixem projektu ($cachePrefix)
+     * @param string $key
+     * @return string
+     */
+    public static function cacheKey(string $key): string {
+        return empty(self::$cachePrefix) ? $key : self::$cachePrefix . ":" . $key;
+    }
+
     /** @var array Konfigurační pole */
     public static $config = [];
 

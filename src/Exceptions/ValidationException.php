@@ -11,7 +11,7 @@ namespace API\Exceptions {
 		 * @param mixed $code Obecný kód vyjímky
 		 * @param Exception $previous Předchozí exception
 		 */
-		public function __construct($message, $code = 0, $custom_data = null, \Exception $previous = null) {
+		public function __construct($message, $code = 0, $custom_data = null, ?\Exception $previous = null) {
 			// some code
 			$this->custom_data = $custom_data;
 			// make sure everything is assigned properly

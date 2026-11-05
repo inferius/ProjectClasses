@@ -3,6 +3,16 @@
 Vsechny zmeny balicku. Nova verze = nova sekce nahore (verze, datum, co se zmenilo a co musi projekt udelat).
 Projekty: anoda (admin + web), cestadocloudu (admin + web), mytimi2.
 
+## v1.7.3 - 2026-11-05
+
+- `PageTemplate::createOptiScriptLoad()` (spojene CSS/JS stranky v `tmp/CSS_JS_Cache`): CSS a JS se kontroluji a zapisuji
+  zvlast. Drive se oba soubory vytvorily jen kdyz chybelo CSS - po nasazeni noveho `page.js` (CSS beze zmeny) dostal JS
+  novy nazev, ale nevytvoril se: 404 a stranka bez svych funkci (Atoda: tlacitko Ulozit u oboru pece,
+  `saveReload is not defined`). Projevi se jen bez debug modu (v debug se soubory zapisuji pokazde).
+- Chybejici adresar `CSS_JS_Cache` se zalozi, soubory se zapisuji pres docasny soubor a prejmenovani.
+
+Projekt: `composer update michalosoft/project-classes`; uz poskozene stranky opravi "Vymazat cache" (smaze `tmp/CSS_JS_Cache`).
+
 ## v1.7.2 - 2026-10-27
 
 - `PageTemplate` (koreny `addTemplateRoot`): sablona z korene se vybere jen kdyz adresar stranky obsahuje `page.latte`

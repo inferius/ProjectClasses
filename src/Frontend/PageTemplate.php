@@ -399,9 +399,16 @@ class PageTemplate
         $css_path = $path_dir . "/" . $f_css_hash;
         $js_path = $path_dir . "/" . $f_js_hash;
 
+        // CSS a JS se kontroluji zvlast - maji jiny hash (po nasazeni noveho page.js se zmeni jen JS a drive se JS
+        // nevytvoril, protoze CSS uz existovalo -> 404 a funkce stranky chybely, napr. saveReload)
+        $debug = !empty(\API\Configurator::$config["debug"]["status"]);
+        $write_css = $debug || !is_file($css_path);
+        $write_js = $debug || !is_file($js_path);
+
         $css_data = "";
         $js_data = "";
-        if (!file_exists($css_path) || \API\Configurator::$config["debug"]["status"]) {
+        if ($write_css || $write_js) {
+            if (!is_dir($path_dir)) @mkdir($path_dir, 0775, true);
 
             foreach (self::$full_load_data as $key => $val) {
 
@@ -416,8 +423,8 @@ class PageTemplate
                     }
                 }
             }
-            file_put_contents($css_path, $css_data);
-            file_put_contents($js_path, $js_data);
+            if ($write_css) self::writeCacheFile($css_path, $css_data);
+            if ($write_js) self::writeCacheFile($js_path, $js_data);
         }
 
         return [
@@ -426,5 +433,12 @@ class PageTemplate
             "css_url" => $path_url . "/". $f_css_hash,
             "js_url" => $path_url . "/". $f_js_hash,
         ];
+    }
+
+    /** Zapis pres docasny soubor a prejmenovani - soubezny pozadavek nenacte rozepsany soubor */
+    private static function writeCacheFile(string $path, string $data): void {
+        $tmp = $path . "." . getmypid() . ".tmp";
+        if (@file_put_contents($tmp, $data) === false) return;
+        if (!@rename($tmp, $path)) @unlink($tmp);
     }
 }
